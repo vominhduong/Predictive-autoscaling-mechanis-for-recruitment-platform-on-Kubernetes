@@ -16,17 +16,19 @@ sequenceDiagram
     actor U as User
     participant G as Gateway
     participant A as Auth Service
-    participant R as Redis
+    participant D as Auth PostgreSQL
     U->>G: POST /auth/login
     G->>A: email + password
     A->>A: Verify BCrypt
-    A->>R: Store refresh session
+    A->>D: Store SHA-256 refresh token hash
     A-->>U: Token pair
     U->>G: POST /auth/refresh
     G->>A: refreshToken
-    A->>R: Validate and rotate
+    A->>D: Lock, validate and rotate token hash
     A-->>U: New token pair
 ```
+
+Refresh Token của MVP là opaque token. Raw token chỉ được trả cho client; Auth Service lưu SHA-256 hash trong PostgreSQL. Redis được dành cho rate limiting, cache hoặc token blacklist ở task sau.
 
 ## 2. Employer đăng Job
 
@@ -80,4 +82,3 @@ Event gồm `eventId`, `eventType`, `occurredAt`, `data`. Consumer kiểm tra `e
 | Apply trùng | `409 APPLICATION_ALREADY_EXISTS` |
 | Transition sai | `409 INVALID_STATUS_TRANSITION` |
 | Dependency timeout | `503 DEPENDENCY_UNAVAILABLE` |
-

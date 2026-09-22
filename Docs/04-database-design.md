@@ -31,11 +31,11 @@ Index unique trên `lower(email)`.
 
 ### `candidate_profiles`
 
-`id` UUID PK, `user_id` unique, `full_name`, `phone`, `headline`, `summary`, `location_id`, timestamps.
+`id` UUID PK, `user_id` unique, `full_name`, `phone`, `headline`, `summary`, `location_id`, timestamps, `version` for optimistic locking.
 
 ### `companies`
 
-`id` UUID PK, `name`, `description`, `address`, `logo_object_key`, `status`, timestamps.
+`id` UUID PK, `name`, `description`, `address`, `logo_object_key`, `status`, timestamps, `version` for optimistic locking.
 
 ### `company_members`
 
@@ -112,6 +112,5 @@ Unique `(candidate_id, job_id)`. Indexes `(candidate_id, created_at desc)`, `(jo
 ## 6. `notification_db`
 
 `notification_logs`: `id`, `event_id` unique, `recipient`, `type`, `subject`, `status`, `attempt_count`, `error_message`, `sent_at`, `created_at`.
-
 
 

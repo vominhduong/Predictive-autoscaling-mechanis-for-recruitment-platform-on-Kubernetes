@@ -1,0 +1,3 @@
+package com.example.user_service.dto;
+import com.example.user_service.entity.MemberRole; import jakarta.validation.constraints.*; import java.time.Instant; import java.util.UUID;
+public final class CompanyDtos {private CompanyDtos(){} public record Upsert(@NotBlank @Size(max=255) String name,@Size(max=10000) String description,@Size(max=500) String address){} public record AddMember(@NotNull UUID userId,MemberRole role){} public record View(UUID id,String name,String description,String address,String status,Instant createdAt,Instant updatedAt,long version){} public record Authorization(boolean canManage,MemberRole memberRole){} }

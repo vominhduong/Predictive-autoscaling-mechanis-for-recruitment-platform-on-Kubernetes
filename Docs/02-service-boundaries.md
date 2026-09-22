@@ -5,7 +5,7 @@
 | Service | Trách nhiệm | Dữ liệu sở hữu | Phụ thuộc |
 |---|---|---|---|
 | `api-gateway` | Routing, JWT ở biên, CORS, rate limit, correlation ID | Không có DB nghiệp vụ | Các HTTP service |
-| `auth-service` | Credential, role, login, token, account status | User, refresh token | Redis, RabbitMQ |
+| `auth-service` | Credential, role, login, token, account status | User, refresh token hash | PostgreSQL, RabbitMQ |
 | `user-service` | Candidate profile, Company/member, CV metadata | Profile, Company, CV | MinIO |
 | `job-service` | Job, Category, Location, search/filter | Job và danh mục | User Service khi xác minh Company |
 | `application-service` | Apply, chống trùng, trạng thái, history | Application, snapshot | Job, User, RabbitMQ |
@@ -64,7 +64,7 @@ Không tạo vòng gọi đồng bộ. Service chỉ chia sẻ DTO contract, kh�
 
 | Hành động | Điều kiện |
 |---|---|
-| Sửa Candidate profile/CV | `jwt.userId == resource.userId` |
+| Sửa Candidate profile/CV | `jwt.sub == resource.userId` |
 | Sửa Company | User là Company member có quyền quản lý |
 | Sửa/đóng Job | Employer quản lý `job.companyId` |
 | Apply Job | Candidate; CV thuộc mình; Job đang mở |
@@ -79,4 +79,3 @@ Không tạo vòng gọi đồng bộ. Service chỉ chia sẻ DTO contract, kh�
 | Application | Job | Job eligibility và Job/owner snapshot |
 | Application | User | CV ownership và CV/Candidate snapshot |
 | Notification | RabbitMQ | Application/User events |
-

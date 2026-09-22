@@ -20,7 +20,7 @@ Xây dựng nền tảng tuyển dụng kết nối **Candidate**, **Employer** 
 | Backend | Java, Spring Boot, Spring Security, Spring Data JPA |
 | Gateway | Spring Cloud Gateway |
 | Database | PostgreSQL — database per service |
-| Token/cache | Redis |
+| Token/cache | Refresh Token hash trong PostgreSQL; Redis dành cho cache/rate limit/blacklist ở task sau |
 | Message broker | RabbitMQ |
 | File storage | MinIO |
 | Frontend | React, Vite, Tailwind, TanStack Query |
@@ -46,7 +46,8 @@ Xây dựng nền tảng tuyển dụng kết nối **Candidate**, **Employer** 
 ## 6. Bảo mật
 
 - BCrypt cho password; Access Token 15–30 phút; Refresh Token khoảng 7 ngày.
-- JWT chứa `userId`, `email`, `role`, `iat`, `exp`; không chứa dữ liệu nhạy cảm.
+- JWT dùng claim chuẩn `sub = userId`, cùng `email`, `role`, `iat`, `exp`, `jti`; không chứa dữ liệu nhạy cảm.
+- Refresh Token là chuỗi opaque; client chỉ nhận raw token, Auth Service chỉ lưu SHA-256 hash trong PostgreSQL.
 - API đăng ký công khai chỉ nhận `CANDIDATE` hoặc `EMPLOYER`.
 - Service nội bộ không mở public port trong production.
 - CV chỉ nhận PDF theo giới hạn; client gửi `cvId`, không tự khai báo `cvUrl`.
@@ -69,4 +70,3 @@ Xây dựng nền tảng tuyển dụng kết nối **Candidate**, **Employer** 
 - Chuyển trạng thái Application đúng workflow và lưu history.
 - RabbitMQ và Notification Service hoạt động.
 - Hệ thống chạy được bằng Docker Compose.
-

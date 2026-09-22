@@ -4,6 +4,7 @@
 
 - Base path `/api/v1`; JSON `camelCase`; thời gian ISO-8601 UTC; ID dùng UUID.
 - JWT: `Authorization: Bearer <token>`.
+- JWT dùng `sub` làm user identifier (`sub = userId`).
 - Pagination bắt đầu `page=0`; `size` tối đa 100.
 
 ### Success
@@ -70,6 +71,10 @@ Internal:
 
 - `GET /internal/cvs/{cvId}/validation?candidateId=...`: CV ownership + snapshot.
 - `GET /internal/companies/{companyId}/authorization?userId=...`: Company permission.
+
+Internal User Service endpoints require `X-Internal-Token`, configured independently on trusted service callers. CV validation returns the verified candidate/CV metadata and private object key required for the Application snapshot; public Candidate responses never return that key. Company authorization treats OWNER and RECRUITER as eligible to manage jobs, while only OWNER may update Company data or members. This shared-token mechanism plus private service networking is the MVP control; production should replace it with workload identity or mutual TLS and token rotation. Gateway does not route `/internal/**`.
+
+CV objects are stored in the private `recruitment-cvs` bucket. Upload writes the object before metadata and performs best-effort object cleanup if the database write fails. Delete removes the object first and then metadata; because object deletion is idempotent, retrying the request completes a database failure that occurs after object deletion.
 
 ## 4. Job API
 
@@ -161,3 +166,20 @@ Status request:
 
 Producer không chờ Notification Service gửi email xong mới trả response.
 
+## 9. API Gateway routing
+
+Gateway giữ nguyên `/api/v1` và không public bất kỳ `/internal/**` endpoint nào.
+
+| Route ID | Public path | Upstream mặc định |
+|---|---|---|
+| `auth-service` | `/api/v1/auth/**` | `http://localhost:8081` |
+| `user-candidates` | `/api/v1/candidates/**` | `http://localhost:8082` |
+| `user-companies` | `/api/v1/companies/**` | `http://localhost:8082` |
+| `job-service` | `/api/v1/jobs/**` | `http://localhost:8083` |
+| `job-employer` | `/api/v1/employer/jobs/**` | `http://localhost:8083` |
+| `job-admin-categories` | `/api/v1/admin/categories/**` | `http://localhost:8083` |
+| `job-admin-locations` | `/api/v1/admin/locations/**` | `http://localhost:8083` |
+| `application-service` | `/api/v1/applications/**` | `http://localhost:8084` |
+| `application-employer` | `/api/v1/employer/jobs/{jobId}/applications/**` | `http://localhost:8084` |
+
+Các URI được override bằng `AUTH_SERVICE_URI`, `USER_SERVICE_URI`, `JOB_SERVICE_URI` và `APPLICATION_SERVICE_URI`. Gateway xác minh JWT RS256 bằng public key, lấy user ID từ `sub`, xóa mọi `X-User-*` do client gửi rồi mới gắn identity đã xác minh xuống upstream.

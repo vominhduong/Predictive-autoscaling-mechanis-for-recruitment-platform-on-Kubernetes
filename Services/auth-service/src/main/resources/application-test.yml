@@ -10,3 +10,7 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+security:
+  jwt:
+    private-key: classpath:keys/test-private.pem
+    public-key: classpath:keys/test-public.pem

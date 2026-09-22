@@ -1,0 +1,69 @@
+spring:
+  application:
+    name: api-gateway
+  main:
+    web-application-type: reactive
+  cloud:
+    gateway:
+      server:
+        webflux:
+          httpclient:
+            connect-timeout: 3000
+            response-timeout: 5s
+          routes:
+            - id: auth-service
+              uri: ${AUTH_SERVICE_URI:http://localhost:8081}
+              predicates:
+                - Path=/api/v1/auth/**
+            - id: user-candidates
+              uri: ${USER_SERVICE_URI:http://localhost:8082}
+              predicates:
+                - Path=/api/v1/candidates/**
+            - id: user-companies
+              uri: ${USER_SERVICE_URI:http://localhost:8082}
+              predicates:
+                - Path=/api/v1/companies/**
+            - id: application-employer
+              uri: ${APPLICATION_SERVICE_URI:http://localhost:8084}
+              predicates:
+                - Path=/api/v1/employer/jobs/*/applications/**
+            - id: application-service
+              uri: ${APPLICATION_SERVICE_URI:http://localhost:8084}
+              predicates:
+                - Path=/api/v1/applications/**
+            - id: job-employer
+              uri: ${JOB_SERVICE_URI:http://localhost:8083}
+              predicates:
+                - Path=/api/v1/employer/jobs/**
+            - id: job-service
+              uri: ${JOB_SERVICE_URI:http://localhost:8083}
+              predicates:
+                - Path=/api/v1/jobs/**
+            - id: job-admin-categories
+              uri: ${JOB_SERVICE_URI:http://localhost:8083}
+              predicates:
+                - Path=/api/v1/admin/categories/**
+            - id: job-admin-locations
+              uri: ${JOB_SERVICE_URI:http://localhost:8083}
+              predicates:
+                - Path=/api/v1/admin/locations/**
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+
+gateway:
+  security:
+    jwt:
+      issuer: ${JWT_ISSUER:recruitment-auth-service}
+      public-key: ${JWT_PUBLIC_KEY:classpath:keys/dev-public.pem}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}

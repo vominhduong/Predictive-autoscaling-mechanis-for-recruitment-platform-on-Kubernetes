@@ -1,0 +1,6 @@
+package com.example.user_service.configuration;
+import com.example.user_service.exception.ApiException; import com.example.user_service.security.RequestIdentity; import jakarta.servlet.http.HttpServletRequest; import org.springframework.core.MethodParameter; import org.springframework.http.HttpStatus; import org.springframework.stereotype.Component; import org.springframework.web.bind.support.WebDataBinderFactory; import org.springframework.web.context.request.NativeWebRequest; import org.springframework.web.method.support.*; import java.util.UUID;
+@Component public class IdentityArgumentResolver implements HandlerMethodArgumentResolver {
+ public boolean supportsParameter(MethodParameter p){return p.getParameterType()==RequestIdentity.class;}
+ public Object resolveArgument(MethodParameter p,ModelAndViewContainer m,NativeWebRequest w,WebDataBinderFactory b){HttpServletRequest r=w.getNativeRequest(HttpServletRequest.class);String id=r.getHeader("X-User-Id"),role=r.getHeader("X-User-Role");if(id==null||role==null)throw new ApiException(HttpStatus.UNAUTHORIZED,"UNAUTHORIZED","Authentication is required");try{return new RequestIdentity(UUID.fromString(id),r.getHeader("X-User-Email"),role);}catch(IllegalArgumentException e){throw new ApiException(HttpStatus.UNAUTHORIZED,"UNAUTHORIZED","Invalid authenticated identity");}}
+}

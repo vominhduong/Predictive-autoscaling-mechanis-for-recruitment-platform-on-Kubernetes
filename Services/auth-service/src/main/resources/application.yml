@@ -13,3 +13,10 @@ management:
   endpoint:
     health:
       show-details: when_authorized
+security:
+  jwt:
+    issuer: ${JWT_ISSUER:recruitment-auth-service}
+    access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:1800s}
+    private-key: ${JWT_PRIVATE_KEY:classpath:keys/dev-private.pem}
+    public-key: ${JWT_PUBLIC_KEY:classpath:keys/dev-public.pem}
+    refresh-token-expiration: ${REFRESH_TOKEN_EXPIRATION:604800s}
