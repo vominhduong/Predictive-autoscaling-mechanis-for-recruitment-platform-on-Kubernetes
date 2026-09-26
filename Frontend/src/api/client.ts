@@ -1,0 +1,9 @@
+import axios,{type AxiosRequestConfig}from'axios';import{clearSession,createSession,getSession,setSession}from'../features/auth/session';import type{ApiResponse,Tokens}from'../types/api';
+const configured=(import.meta.env.VITE_API_BASE_URL as string|undefined)?.replace(/\/$/,'')||window.location.origin;
+export const api=axios.create({baseURL:configured,timeout:10000,headers:{Accept:'application/json'}});let refreshFlight:Promise<string>|null=null;
+async function refreshAccess(){const session=getSession();if(!session)throw new Error('No session');if(!refreshFlight)refreshFlight=axios.post<ApiResponse<Tokens>>(`${configured}/api/v1/auth/refresh`,{refreshToken:session.refreshToken},{timeout:10000}).then(r=>{const next=createSession(r.data.data);setSession(next);return next.accessToken}).catch(e=>{clearSession();window.dispatchEvent(new Event('auth:expired'));throw e}).finally(()=>{refreshFlight=null});return refreshFlight}
+api.interceptors.request.use(config=>{const session=getSession();if(session)config.headers.Authorization=`Bearer ${session.accessToken}`;config.headers['X-Correlation-ID']=crypto.randomUUID();return config});
+api.interceptors.response.use(r=>r,async error=>{const config=error.config as(AxiosRequestConfig&{_retried?:boolean})|undefined;if(error.response?.status===401&&config&&!config._retried&&getSession()&&!String(config.url).includes('/auth/refresh')){config._retried=true;config.headers={...config.headers,Authorization:`Bearer ${await refreshAccess()}`};return api.request(config)}throw error});
+export async function data<T>(request:Promise<{data:ApiResponse<T>}>){return(await request).data.data}
+export async function logout(){const session=getSession();try{if(session)await api.post('/api/v1/auth/logout',{refreshToken:session.refreshToken})}finally{clearSession()}}
+export const __testing={refreshAccess};

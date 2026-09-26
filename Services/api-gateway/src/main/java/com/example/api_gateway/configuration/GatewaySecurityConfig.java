@@ -35,7 +35,7 @@ public class GatewaySecurityConfig {
                         .pathMatchers(HttpMethod.POST, "/api/v1/auth/refresh").permitAll()
                         .pathMatchers(HttpMethod.GET, "/api/v1/jobs", "/api/v1/jobs/**").permitAll()
                         .pathMatchers(HttpMethod.GET, "/api/v1/companies/*").permitAll()
-                        .pathMatchers(HttpMethod.GET, "/actuator/health").permitAll()
+                        .pathMatchers(HttpMethod.GET, "/actuator/health/**", "/actuator/prometheus").permitAll()
                         .anyExchange().authenticated())
                 .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> { })
                         .authenticationEntryPoint(entryPoint)

@@ -1,0 +1,3 @@
+export const MAX_CV_BYTES=5*1024*1024;export function validateCv(file:File|null){if(!file)return'Vui lòng chọn tệp PDF.';if(file.type!=='application/pdf'||!file.name.toLowerCase().endsWith('.pdf'))return'Chỉ chấp nhận tệp PDF.';if(file.size>MAX_CV_BYTES)return'CV không được vượt quá 5 MB.';return null}
+export function isUuid(value:string){return/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)}
+export const applicationTransitions={APPLIED:['SCREENING','REJECTED'],SCREENING:['INTERVIEW','REJECTED'],INTERVIEW:['OFFER','REJECTED'],OFFER:['HIRED','REJECTED'],HIRED:[],REJECTED:[]}as const;

@@ -1,0 +1,1 @@
+package com.example.notification_service.repository;import com.example.notification_service.entity.Notification;import org.springframework.data.jpa.repository.JpaRepository;import java.util.*;public interface NotificationRepository extends JpaRepository<Notification,UUID>{Optional<Notification> findByEventId(UUID eventId);}

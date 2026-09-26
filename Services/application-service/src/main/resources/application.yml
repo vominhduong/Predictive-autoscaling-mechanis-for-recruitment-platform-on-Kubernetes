@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: application-service
+  datasource:
+    url: ${APPLICATION_DB_URL:jdbc:postgresql://localhost:5432/application_db}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:${RABBITMQ_DEFAULT_USER:guest}}
+    password: ${RABBITMQ_PASSWORD:${RABBITMQ_DEFAULT_PASS:guest}}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+server:
+  port: ${SERVER_PORT:8084}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{correlationId:-}]"
+application-service:
+  internal-token: ${INTERNAL_API_TOKEN:}
+  job-service-url: ${JOB_SERVICE_URI:http://localhost:8083}
+  user-service-url: ${USER_SERVICE_URI:http://localhost:8082}
+  connect-timeout: ${INTERNAL_CONNECT_TIMEOUT:2s}
+  read-timeout: ${INTERNAL_READ_TIMEOUT:3s}
+  circuit-breaker:
+    failure-threshold: ${INTERNAL_CIRCUIT_FAILURE_THRESHOLD:3}
+    open-duration: ${INTERNAL_CIRCUIT_OPEN_DURATION:10s}
+  outbox:
+    enabled: ${OUTBOX_PUBLISHER_ENABLED:true}
+    batch-size: ${OUTBOX_BATCH_SIZE:50}
+    fixed-delay: ${OUTBOX_FIXED_DELAY:1000}
+    confirm-timeout: ${OUTBOX_CONFIRM_TIMEOUT:5s}
+    max-attempts: ${OUTBOX_MAX_ATTEMPTS:8}
+  messaging:
+    exchange: ${RABBITMQ_EVENTS_EXCHANGE:recruitment.events}
+    submitted-routing-key: ${RABBITMQ_APPLICATION_SUBMITTED_KEY:application.submitted}
+    status-routing-key: ${RABBITMQ_APPLICATION_STATUS_KEY:application.status-changed}

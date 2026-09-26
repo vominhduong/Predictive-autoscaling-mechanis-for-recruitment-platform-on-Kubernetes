@@ -1,0 +1,1 @@
+package com.example.application_service.common;import java.time.Instant;import java.util.List;public record ApiErrorResponse(boolean success,String code,String message,List<FieldErrorResponse> fieldErrors,String traceId,Instant timestamp){public ApiErrorResponse(String c,String m,List<FieldErrorResponse> f,String t){this(false,c,m,f,t,Instant.now());}}

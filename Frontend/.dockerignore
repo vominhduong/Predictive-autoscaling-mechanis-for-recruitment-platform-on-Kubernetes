@@ -1,0 +1,10 @@
+node_modules/
+dist/
+playwright-report/
+test-results/
+.git/
+.idea/
+.env
+*.tsbuildinfo
+e2e/
+src/test/

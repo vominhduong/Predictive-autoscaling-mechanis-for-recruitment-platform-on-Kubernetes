@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: job-service
+  datasource:
+    url: ${JOB_DB_URL:jdbc:postgresql://localhost:5432/job_db}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+server:
+  port: ${SERVER_PORT:8083}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{correlationId:-}]"
+job-service:
+  internal-token: ${INTERNAL_API_TOKEN:}
+  user-service:
+    base-url: ${USER_SERVICE_URI:http://localhost:8082}
+    connect-timeout: ${USER_SERVICE_CONNECT_TIMEOUT:2s}
+    read-timeout: ${USER_SERVICE_READ_TIMEOUT:3s}

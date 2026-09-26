@@ -1,0 +1,10 @@
+import { ArrowRight, Building2, CheckCircle2, FileSearch, Send, Sparkles, UserRound } from 'lucide-react';
+import { Link } from 'react-router-dom';
+
+export function MarketingSections() {
+  return <>
+    <section className="value-section" id="candidate"><div className="section-kicker"><p className="eyebrow">Dành cho ứng viên</p><h2>Một hành trình tìm việc rõ ràng hơn</h2><p>Từ hồ sơ đến từng vòng tuyển dụng, mọi bước quan trọng đều ở đúng nơi bạn cần.</p></div><div className="value-grid"><article><span><UserRound /></span><h3>Hồ sơ có trọng tâm</h3><p>Quản lý thông tin nghề nghiệp và CV để sẵn sàng cho từng cơ hội.</p></article><article><span><FileSearch /></span><h3>Tìm kiếm minh bạch</h3><p>Lọc công việc theo hình thức, mức lương và địa điểm phù hợp.</p></article><article><span><Send /></span><h3>Theo dõi liền mạch</h3><p>Nắm trạng thái hồ sơ từ lúc ứng tuyển đến khi có kết quả.</p></article></div><Link className="button button-secondary" to="/register">Tạo hồ sơ ứng viên <ArrowRight /></Link></section>
+    <section className="employer-section" id="employer"><div><p className="eyebrow">Dành cho nhà tuyển dụng</p><h2>Xây đội ngũ với quy trình nhất quán</h2><p>Tạo tin tuyển dụng, quản lý hồ sơ và phối hợp theo từng trạng thái trên một nền tảng tập trung.</p><Link className="button" to="/register">Bắt đầu tuyển dụng <ArrowRight /></Link></div><div className="employer-points"><p><CheckCircle2 /> Quản lý nhiều tin theo công ty</p><p><CheckCircle2 /> Trạng thái ứng viên rõ ràng</p><p><CheckCircle2 /> Phân quyền Owner và Recruiter</p></div></section>
+    <section className="process-section"><div className="section-kicker"><p className="eyebrow">Đơn giản từ bước đầu</p><h2>Ba bước để tiến về phía trước</h2></div><div className="process-grid"><article><b>01</b><Sparkles /><h3>Tạo tài khoản</h3><p>Chọn đúng vai trò và thiết lập không gian của bạn.</p></article><article><b>02</b><Building2 /><h3>Chuẩn bị thông tin</h3><p>Hoàn thiện hồ sơ ứng viên hoặc thông tin doanh nghiệp.</p></article><article><b>03</b><ArrowRight /><h3>Bắt đầu kết nối</h3><p>Ứng tuyển hoặc đăng việc qua quy trình minh bạch.</p></article></div></section>
+  </>;
+}

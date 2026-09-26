@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: spring-services
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - api-gateway:8080
+          - auth-service:8081
+          - user-service:8082
+          - job-service:8083
+          - application-service:8084
+          - notification-service:8085
+        labels:
+          platform: recruitment

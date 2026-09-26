@@ -1,0 +1,57 @@
+spring:
+  application:
+    name: notification-service
+  datasource:
+    url: ${NOTIFICATION_DB_URL:jdbc:postgresql://localhost:5432/notification_db}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:${RABBITMQ_DEFAULT_USER:guest}}
+    password: ${RABBITMQ_PASSWORD:${RABBITMQ_DEFAULT_PASS:guest}}
+    listener:
+      simple:
+        acknowledge-mode: auto
+        prefetch: ${RABBITMQ_PREFETCH:10}
+        default-requeue-rejected: false
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    properties:
+      mail.smtp.connectiontimeout: 3000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+server:
+  port: ${SERVER_PORT:8085}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{correlationId:-}]"
+notification:
+  mail:
+    from: ${NOTIFICATION_FROM:no-reply@recruitment.local}
+  messaging:
+    exchange: ${RABBITMQ_EVENTS_EXCHANGE:recruitment.events}
+    queue: ${RABBITMQ_NOTIFICATION_QUEUE:notification.application-events}
+    submitted-key: ${RABBITMQ_APPLICATION_SUBMITTED_KEY:application.submitted}
+    status-key: ${RABBITMQ_APPLICATION_STATUS_KEY:application.status-changed}
+    dlx: ${RABBITMQ_NOTIFICATION_DLX:notification.events.dlx}
+    dlq: ${RABBITMQ_NOTIFICATION_DLQ:notification.application-events.dlq}
+    retry-attempts: ${NOTIFICATION_RETRY_ATTEMPTS:3}

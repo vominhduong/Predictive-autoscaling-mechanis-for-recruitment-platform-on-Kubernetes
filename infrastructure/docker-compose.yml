@@ -2,7 +2,7 @@ name: recruitment-platform
 
 services:
   postgres:
-    image: postgres:17-alpine
+    image: postgres:17.6-alpine
     container_name: recruitment-postgres
     restart: unless-stopped
     environment:
@@ -21,9 +21,10 @@ services:
       start_period: 10s
     networks:
       - recruitment-network
+    security_opt: ["no-new-privileges:true"]
 
   redis:
-    image: redis:7-alpine
+    image: redis:7.4.5-alpine
     container_name: recruitment-redis
     restart: unless-stopped
     ports:
@@ -38,9 +39,10 @@ services:
       start_period: 5s
     networks:
       - recruitment-network
+    security_opt: ["no-new-privileges:true"]
 
   rabbitmq:
-    image: rabbitmq:4-management-alpine
+    image: rabbitmq:4.1.3-management-alpine
     container_name: recruitment-rabbitmq
     restart: unless-stopped
     environment:
@@ -59,9 +61,10 @@ services:
       start_period: 20s
     networks:
       - recruitment-network
+    security_opt: ["no-new-privileges:true"]
 
   minio:
-    image: elestio/minio
+    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
     container_name: recruitment-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -81,16 +84,251 @@ services:
       start_period: 10s
     networks:
       - recruitment-network
+    security_opt: ["no-new-privileges:true"]
+
+  minio-init:
+    image: quay.io/minio/mc:RELEASE.2025-04-16T18-13-26Z
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      MINIO_CV_BUCKET: ${MINIO_CV_BUCKET:-recruitment-cvs}
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["mc alias set local http://minio:9000 \"$$MINIO_ROOT_USER\" \"$$MINIO_ROOT_PASSWORD\" && mc mb --ignore-existing local/\"$$MINIO_CV_BUCKET\" && mc anonymous set none local/\"$$MINIO_CV_BUCKET\""]
+    networks:
+      - recruitment-network
+    security_opt: ["no-new-privileges:true"]
 
   mailpit:
-    image: axllent/mailpit:v1
+    image: axllent/mailpit:v1.27.8
     container_name: recruitment-mailpit
     restart: unless-stopped
     ports:
       - "${MAILPIT_SMTP_PORT:-1025}:1025"
       - "${MAILPIT_UI_PORT:-8025}:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - recruitment-network
+    security_opt: ["no-new-privileges:true"]
+
+  auth-service:
+    build: {context: ../Services/auth-service}
+    image: recruitment/auth-service:local
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: auth_db
+      DB_USERNAME: ${POSTGRES_USER:?POSTGRES_USER is required}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      JWT_ISSUER: ${JWT_ISSUER:-recruitment-auth-service}
+      JWT_ACCESS_TOKEN_EXPIRATION: ${JWT_ACCESS_TOKEN_EXPIRATION:-1800s}
+      REFRESH_TOKEN_EXPIRATION: ${REFRESH_TOKEN_EXPIRATION:-604800s}
+      JWT_PRIVATE_KEY: file:/run/keys/private.pem
+      JWT_PUBLIC_KEY: classpath:keys/dev-public.pem
+      LOGGING_LEVEL_ROOT: ${LOGGING_LEVEL_ROOT:-INFO}
+    volumes:
+      - ../Services/auth-service/src/main/resources/keys/dev-private.pem:/run/keys/private.pem:ro
+    depends_on:
+      postgres: {condition: service_healthy}
+    networks: [recruitment-network]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    stop_grace_period: 30s
+
+  user-service:
+    build: {context: ../Services/user-service}
+    image: recruitment/user-service:local
+    restart: unless-stopped
+    environment:
+      USER_DB_URL: jdbc:postgresql://postgres:5432/user_db
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?INTERNAL_API_TOKEN is required}
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      MINIO_CV_BUCKET: ${MINIO_CV_BUCKET:-recruitment-cvs}
+      LOGGING_LEVEL_ROOT: ${LOGGING_LEVEL_ROOT:-INFO}
+    depends_on:
+      postgres: {condition: service_healthy}
+      minio-init: {condition: service_completed_successfully}
+    networks: [recruitment-network]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    stop_grace_period: 30s
+
+  job-service:
+    build: {context: ../Services/job-service}
+    image: recruitment/job-service:local
+    restart: unless-stopped
+    environment:
+      JOB_DB_URL: jdbc:postgresql://postgres:5432/job_db
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?INTERNAL_API_TOKEN is required}
+      USER_SERVICE_URI: http://user-service:8082
+      LOGGING_LEVEL_ROOT: ${LOGGING_LEVEL_ROOT:-INFO}
+    depends_on:
+      postgres: {condition: service_healthy}
+      user-service: {condition: service_healthy}
+    networks: [recruitment-network]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    stop_grace_period: 30s
+
+  application-service:
+    build: {context: ../Services/application-service}
+    image: recruitment/application-service:local
+    restart: unless-stopped
+    environment:
+      APPLICATION_DB_URL: jdbc:postgresql://postgres:5432/application_db
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?INTERNAL_API_TOKEN is required}
+      JOB_SERVICE_URI: http://job-service:8083
+      USER_SERVICE_URI: http://user-service:8082
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:?RABBITMQ_DEFAULT_USER is required}
+      RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS is required}
+      LOGGING_LEVEL_ROOT: ${LOGGING_LEVEL_ROOT:-INFO}
+    depends_on:
+      postgres: {condition: service_healthy}
+      rabbitmq: {condition: service_healthy}
+      user-service: {condition: service_healthy}
+      job-service: {condition: service_healthy}
+    networks: [recruitment-network]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    stop_grace_period: 30s
+
+  notification-service:
+    build: {context: ../Services/notification-service}
+    image: recruitment/notification-service:local
+    restart: unless-stopped
+    environment:
+      NOTIFICATION_DB_URL: jdbc:postgresql://postgres:5432/notification_db
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:?RABBITMQ_DEFAULT_USER is required}
+      RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS is required}
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      NOTIFICATION_FROM: ${NOTIFICATION_FROM:-no-reply@recruitment.local}
+      LOGGING_LEVEL_ROOT: ${LOGGING_LEVEL_ROOT:-INFO}
+    depends_on:
+      postgres: {condition: service_healthy}
+      rabbitmq: {condition: service_healthy}
+      mailpit: {condition: service_healthy}
+    networks: [recruitment-network]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    stop_grace_period: 30s
+
+  api-gateway:
+    build: {context: ../Services/api-gateway}
+    image: recruitment/api-gateway:local
+    restart: unless-stopped
+    environment:
+      AUTH_SERVICE_URI: http://auth-service:8081
+      USER_SERVICE_URI: http://user-service:8082
+      JOB_SERVICE_URI: http://job-service:8083
+      APPLICATION_SERVICE_URI: http://application-service:8084
+      JWT_ISSUER: ${JWT_ISSUER:-recruitment-auth-service}
+      JWT_PUBLIC_KEY: classpath:keys/dev-public.pem
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+      LOGGING_LEVEL_ROOT: ${LOGGING_LEVEL_ROOT:-INFO}
+    ports:
+      - "${API_GATEWAY_PORT:-8080}:8080"
+    depends_on:
+      auth-service: {condition: service_healthy}
+      user-service: {condition: service_healthy}
+      job-service: {condition: service_healthy}
+      application-service: {condition: service_healthy}
+    networks: [recruitment-network]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    stop_grace_period: 30s
+
+  frontend:
+    build: {context: ../Frontend}
+    image: recruitment/frontend:local
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:8080"
+    depends_on:
+      api-gateway: {condition: service_healthy}
+    networks: [recruitment-network]
+    read_only: true
+    tmpfs: [/tmp, /var/cache/nginx, /var/run]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    restart: unless-stopped
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus", "--web.enable-lifecycle"]
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    depends_on:
+      api-gateway: {condition: service_healthy}
+      notification-service: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9090/-/healthy || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks: [recruitment-network]
+    security_opt: ["no-new-privileges:true"]
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      prometheus: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks: [recruitment-network]
+    security_opt: ["no-new-privileges:true"]
 
 networks:
   recruitment-network:
@@ -105,3 +343,7 @@ volumes:
     name: recruitment-rabbitmq-data
   minio-data:
     name: recruitment-minio-data
+  prometheus-data:
+    name: recruitment-prometheus-data
+  grafana-data:
+    name: recruitment-grafana-data

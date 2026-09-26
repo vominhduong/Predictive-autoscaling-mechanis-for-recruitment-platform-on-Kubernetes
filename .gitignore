@@ -9,6 +9,14 @@
 # Java build output
 **/target/
 
+# Frontend build and local configuration
+**/node_modules/
+Frontend/dist/
+Frontend/playwright-report/
+Frontend/test-results/
+Frontend/.env
+Frontend/*.tsbuildinfo
+
 # Operating system files
 .DS_Store
 Thumbs.db

@@ -1,0 +1,1 @@
+import type{Company}from'../../types/api';const KEY='recruitment.companies';export function companies(){try{return JSON.parse(localStorage.getItem(KEY)??'[]')as Company[]}catch{return[]}}export function remember(company:Company){const next=[company,...companies().filter(c=>c.id!==company.id)];localStorage.setItem(KEY,JSON.stringify(next));return next}

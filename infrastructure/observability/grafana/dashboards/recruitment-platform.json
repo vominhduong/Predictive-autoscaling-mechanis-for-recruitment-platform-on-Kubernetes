@@ -1,0 +1,20 @@
+{
+  "annotations":{"list":[]},
+  "editable":true,
+  "panels":[
+    {"type":"timeseries","title":"HTTP request rate","gridPos":{"x":0,"y":0,"w":12,"h":8},"targets":[{"expr":"sum by (application) (rate(http_server_requests_seconds_count[5m]))","legendFormat":"{{application}}"}]},
+    {"type":"timeseries","title":"HTTP 5xx error rate","gridPos":{"x":12,"y":0,"w":12,"h":8},"targets":[{"expr":"sum by (application) (rate(http_server_requests_seconds_count{status=~\"5..\"}[5m]))","legendFormat":"{{application}}"}]},
+    {"type":"timeseries","title":"HTTP p95 latency","gridPos":{"x":0,"y":8,"w":12,"h":8},"targets":[{"expr":"histogram_quantile(0.95, sum by (le, application) (rate(http_server_requests_seconds_bucket[5m])))","legendFormat":"{{application}}"}]},
+    {"type":"timeseries","title":"JVM heap used","gridPos":{"x":12,"y":8,"w":12,"h":8},"targets":[{"expr":"sum by (application) (jvm_memory_used_bytes{area=\"heap\"})","legendFormat":"{{application}}"}]},
+    {"type":"timeseries","title":"Process CPU","gridPos":{"x":0,"y":16,"w":12,"h":8},"targets":[{"expr":"process_cpu_usage","legendFormat":"{{application}}"}]},
+    {"type":"timeseries","title":"Hikari active connections","gridPos":{"x":12,"y":16,"w":12,"h":8},"targets":[{"expr":"hikaricp_connections_active","legendFormat":"{{application}}"}]},
+    {"type":"timeseries","title":"Notification and outbox counters","gridPos":{"x":0,"y":24,"w":24,"h":8},"targets":[{"expr":"{__name__=~\"notification_.*|outbox_.*\"}","legendFormat":"{{__name__}}"}]}
+  ],
+  "schemaVersion":41,
+  "tags":["recruitment","spring-boot"],
+  "templating":{"list":[]},
+  "time":{"from":"now-30m","to":"now"},
+  "title":"Recruitment Platform Overview",
+  "uid":"recruitment-platform",
+  "version":1
+}

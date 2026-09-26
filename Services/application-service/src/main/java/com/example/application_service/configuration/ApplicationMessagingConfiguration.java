@@ -1,0 +1,2 @@
+package com.example.application_service.configuration;import org.springframework.amqp.core.*;import org.springframework.beans.factory.annotation.Value;import org.springframework.context.annotation.*;import org.springframework.scheduling.annotation.EnableScheduling;
+@Configuration @EnableScheduling public class ApplicationMessagingConfiguration{@Bean TopicExchange applicationEventsExchange(@Value("${application-service.messaging.exchange}")String name){return ExchangeBuilder.topicExchange(name).durable(true).build();}}

@@ -1,0 +1,19 @@
+export type Role='CANDIDATE'|'EMPLOYER';
+export interface ApiResponse<T>{success:boolean;message:string;data:T;timestamp:string}
+export interface FieldError{field:string;rejectedValue:unknown;message:string}
+export interface ApiErrorBody{success:false;code:string;message:string;fieldErrors?:FieldError[];traceId?:string;timestamp?:string}
+export interface PageData<T>{content:T[];page:number;size:number;totalElements:number;totalPages:number;first:boolean;last:boolean}
+export interface Tokens{accessToken:string;refreshToken:string;tokenType:string;expiresIn:number;refreshExpiresIn:number}
+export interface UserRegistration{id:string;email:string;role:Role;status:string;emailVerified:boolean;createdAt:string}
+export interface Profile{id:string;userId:string;fullName:string|null;phone:string|null;headline:string|null;summary:string|null;locationId:string|null;createdAt:string;updatedAt:string;version:number}
+export interface Cv{id:string;fileName:string;contentType:string;sizeBytes:number;isDefault:boolean;createdAt:string}
+export interface Company{id:string;name:string;description:string|null;address:string|null;status:string;createdAt:string;updatedAt:string;version:number}
+export type EmploymentType='FULL_TIME'|'PART_TIME'|'CONTRACT'|'INTERNSHIP'|'FREELANCE';
+export type JobStatus='DRAFT'|'PUBLISHED'|'HIDDEN'|'CLOSED';
+export interface Summary{id:string;name:string;slug:string}
+export interface Job{id:string;companyId:string;title:string;description:string;requirements:string;location:Summary;category:Summary;employmentType:EmploymentType;salaryMin:number|null;salaryMax:number|null;salaryCurrency:string;salaryNegotiable:boolean;status:JobStatus;applicationDeadline:string;publishedAt:string|null;createdAt:string;updatedAt:string;version:number}
+export type ApplicationStatus='APPLIED'|'SCREENING'|'INTERVIEW'|'OFFER'|'HIRED'|'REJECTED';
+export interface Application{id:string;jobId:string;candidateId:string;companyId:string;cvId:string;cvFileName:string;jobTitle:string;candidateIdentity:string;coverLetter:string|null;status:ApplicationStatus;createdAt:string;updatedAt:string;version:number}
+export interface ApplicationHistory{id:string;fromStatus:ApplicationStatus|null;toStatus:ApplicationStatus;changedBy:string;note:string|null;createdAt:string}
+export interface ApplicationDetail{application:Application;history:ApplicationHistory[]}
+export interface Session extends Tokens{role:Role;email:string;expiresAt:number}
