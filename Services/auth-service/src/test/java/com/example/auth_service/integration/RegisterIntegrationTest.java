@@ -29,10 +29,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class RegisterIntegrationTest extends AbstractPostgresIntegrationTest {
     private static final String RAW_PASSWORD = "StrongPass@123";
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private UserRepository userRepository;
-    @Autowired private PasswordEncoder passwordEncoder;
-    @Autowired private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private MockMvc mockMvc;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @Test
     void registersUserThroughHttpWithFlywaySchemaAndBcryptPassword() throws Exception {

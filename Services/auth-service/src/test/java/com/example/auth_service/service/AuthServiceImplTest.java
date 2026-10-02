@@ -39,12 +39,18 @@ class AuthServiceImplTest {
     private static final String RAW_PASSWORD = "StrongPass@123";
     private static final String ENCODED_PASSWORD = "$2a$10$encoded-password";
 
-    @Mock private UserRepository userRepository;
-    @Mock private PasswordEncoder passwordEncoder;
-    @Mock private JwtService jwtService;
-    @Mock private RefreshTokenRepository refreshTokenRepository;
-    @Mock private RefreshTokenGenerator refreshTokenGenerator;
-    @Mock private TokenHashService tokenHashService;
+    @Mock
+    private UserRepository userRepository;
+    @Mock
+    private PasswordEncoder passwordEncoder;
+    @Mock
+    private JwtService jwtService;
+    @Mock
+    private RefreshTokenRepository refreshTokenRepository;
+    @Mock
+    private RefreshTokenGenerator refreshTokenGenerator;
+    @Mock
+    private TokenHashService tokenHashService;
     private AuthService authService;
 
     @BeforeEach

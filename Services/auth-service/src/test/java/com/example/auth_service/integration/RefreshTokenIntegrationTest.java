@@ -37,11 +37,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class RefreshTokenIntegrationTest extends AbstractPostgresIntegrationTest {
     private static final String PASSWORD = "StrongPass@123";
 
-    @Autowired private AuthService authService;
-    @Autowired private UserRepository userRepository;
-    @Autowired private RefreshTokenRepository refreshTokenRepository;
-    @Autowired private PasswordEncoder passwordEncoder;
-    @Autowired private TokenHashService tokenHashService;
+    @Autowired
+    private AuthService authService;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    @Autowired
+    private TokenHashService tokenHashService;
 
     @BeforeEach
     void cleanDatabase() {

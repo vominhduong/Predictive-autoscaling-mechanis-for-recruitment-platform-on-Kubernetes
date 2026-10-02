@@ -1,0 +1,225 @@
+﻿ M Docs/05-api-contracts.md
+ M Docs/progress/project-progress.md
+ M Frontend/e2e/frontend.spec.ts
+ M Frontend/e2e/live-gateway.spec.ts
+ M Frontend/e2e/responsive.spec.ts
+ M Frontend/eslint.config.js
+ M Frontend/index.html
+ M Frontend/playwright.config.ts
+ M Frontend/src/api/client.ts
+ M Frontend/src/api/errors.ts
+ M Frontend/src/api/services.ts
+ M Frontend/src/app/AppLayout.tsx
+ M Frontend/src/app/ErrorBoundary.tsx
+ M Frontend/src/app/Guards.tsx
+ M Frontend/src/app/Layout.tsx
+ M Frontend/src/components/DesignSystem.tsx
+ M Frontend/src/components/PasswordInput.tsx
+ M Frontend/src/components/Ui.tsx
+ M Frontend/src/features/auth/AuthContext.tsx
+ M Frontend/src/features/auth/AuthPages.tsx
+ M Frontend/src/features/auth/schemas.ts
+ M Frontend/src/features/auth/session.ts
+ M Frontend/src/features/candidate/CandidatePages.tsx
+ M Frontend/src/features/candidate/JobApplyPage.tsx
+ M Frontend/src/features/company/registry.ts
+ M Frontend/src/features/dashboard/DashboardPages.tsx
+ M Frontend/src/features/employer/EmployerPages.tsx
+ M Frontend/src/features/jobs/FilterSidebar.tsx
+ M Frontend/src/features/jobs/JobBoardHome.tsx
+ M Frontend/src/features/jobs/JobBoardPages.tsx
+ M Frontend/src/features/jobs/JobCard.tsx
+ M Frontend/src/features/jobs/MarketingSections.tsx
+ M Frontend/src/features/jobs/PublicPages.tsx
+ M Frontend/src/features/jobs/SearchBar.tsx
+ M Frontend/src/features/jobs/jobDisplay.ts
+ M Frontend/src/features/jobs/schemas.ts
+ M Frontend/src/main.tsx
+ M Frontend/src/routes/Router.tsx
+ M Frontend/src/styles/production.css
+ M Frontend/src/test/auth-client.test.ts
+ M Frontend/src/test/design-system.test.tsx
+ M Frontend/src/test/fixtures.ts
+ M Frontend/src/test/job-board.test.tsx
+ M Frontend/src/test/pages.test.tsx
+ M Frontend/src/test/security.test.tsx
+ M Frontend/src/test/server.ts
+ M Frontend/src/test/services.test.ts
+ M Frontend/src/test/setup.ts
+ M Frontend/src/test/states.test.tsx
+ M Frontend/src/test/validation.test.ts
+ M Frontend/src/types/api.ts
+ M Frontend/src/utils/validation.ts
+ M Frontend/tsconfig.app.json
+ M Frontend/tsconfig.json
+ M Frontend/tsconfig.node.json
+ M Frontend/vite.config.ts
+ M Services/api-gateway/pom.xml
+ M Services/api-gateway/src/main/java/com/example/api_gateway/ApiGatewayApplication.java
+ M Services/api-gateway/src/main/java/com/example/api_gateway/configuration/GatewaySecurityConfig.java
+ M Services/api-gateway/src/main/java/com/example/api_gateway/filter/IdentityHeaderFilter.java
+ M Services/api-gateway/src/test/java/com/example/api_gateway/ApiGatewayApplicationTests.java
+ M Services/application-service/pom.xml
+ M Services/application-service/src/main/java/com/example/application_service/ApplicationServiceApplication.java
+ M Services/application-service/src/main/java/com/example/application_service/client/InternalServiceClient.java
+ M Services/application-service/src/main/java/com/example/application_service/common/ApiErrorResponse.java
+ M Services/application-service/src/main/java/com/example/application_service/common/ApiResponse.java
+ M Services/application-service/src/main/java/com/example/application_service/common/FieldErrorResponse.java
+ M Services/application-service/src/main/java/com/example/application_service/configuration/ApplicationMessagingConfiguration.java
+ M Services/application-service/src/main/java/com/example/application_service/configuration/WebConfiguration.java
+ M Services/application-service/src/main/java/com/example/application_service/controller/ApplicationController.java
+ M Services/application-service/src/main/java/com/example/application_service/controller/EmployerApplicationController.java
+ M Services/application-service/src/main/java/com/example/application_service/entity/ApplicationStatus.java
+ M Services/application-service/src/main/java/com/example/application_service/entity/ApplicationStatusHistory.java
+ M Services/application-service/src/main/java/com/example/application_service/entity/OutboxEvent.java
+ M Services/application-service/src/main/java/com/example/application_service/entity/OutboxStatus.java
+ M Services/application-service/src/main/java/com/example/application_service/event/ApplicationEvent.java
+ M Services/application-service/src/main/java/com/example/application_service/exception/ApiException.java
+ M Services/application-service/src/main/java/com/example/application_service/exception/CorrelationIdFilter.java
+ M Services/application-service/src/main/java/com/example/application_service/exception/GlobalExceptionHandler.java
+ M Services/application-service/src/main/java/com/example/application_service/repository/ApplicationStatusHistoryRepository.java
+ M Services/application-service/src/main/java/com/example/application_service/repository/JobApplicationRepository.java
+ M Services/application-service/src/main/java/com/example/application_service/repository/OutboxEventRepository.java
+ M Services/application-service/src/main/java/com/example/application_service/security/IdentityArgumentResolver.java
+ M Services/application-service/src/main/java/com/example/application_service/security/RequestIdentity.java
+ M Services/application-service/src/main/java/com/example/application_service/service/ApplicationRules.java
+ M Services/application-service/src/main/java/com/example/application_service/service/ApplicationService.java
+ M Services/application-service/src/main/java/com/example/application_service/service/OutboxPublisher.java
+ M Services/application-service/src/main/java/com/example/application_service/service/OutboxService.java
+ M Services/application-service/src/main/resources/db/migration/V1__create_application_schema.sql
+ M Services/application-service/src/main/resources/db/migration/V2__create_outbox_events.sql
+ M Services/application-service/src/test/java/com/example/application_service/ApplicationRulesTest.java
+ M Services/application-service/src/test/java/com/example/application_service/ApplicationServiceApplicationTests.java
+ M Services/auth-service/pom.xml
+ M Services/auth-service/src/main/java/com/example/auth_service/AuthServiceApplication.java
+ M Services/auth-service/src/main/java/com/example/auth_service/dto/request/LoginRequest.java
+ M Services/auth-service/src/main/java/com/example/auth_service/dto/request/LogoutRequest.java
+ M Services/auth-service/src/main/java/com/example/auth_service/dto/request/RefreshTokenRequest.java
+ M Services/auth-service/src/main/java/com/example/auth_service/dto/response/LoginResponse.java
+ M Services/auth-service/src/main/java/com/example/auth_service/entity/RefreshToken.java
+ M Services/auth-service/src/main/java/com/example/auth_service/entity/User.java
+ M Services/auth-service/src/main/java/com/example/auth_service/enums/UserRole.java
+ M Services/auth-service/src/main/java/com/example/auth_service/enums/UserStatus.java
+ M Services/auth-service/src/main/java/com/example/auth_service/repository/RefreshTokenRepository.java
+ M Services/auth-service/src/main/java/com/example/auth_service/repository/UserRepository.java
+ M Services/auth-service/src/main/java/com/example/auth_service/security/AuthenticatedUser.java
+ M Services/auth-service/src/main/java/com/example/auth_service/security/JwtAuthenticationFilter.java
+ M Services/auth-service/src/main/java/com/example/auth_service/security/JwtService.java
+ M Services/auth-service/src/main/java/com/example/auth_service/security/RefreshTokenGenerator.java
+ M Services/auth-service/src/main/java/com/example/auth_service/security/SecurityConfig.java
+ M Services/auth-service/src/main/java/com/example/auth_service/security/TokenHashService.java
+ M Services/auth-service/src/main/java/com/example/auth_service/service/AuthService.java
+ M Services/auth-service/src/main/resources/db/migration/V1__create_auth_tables.sql
+ M Services/auth-service/src/main/resources/keys/README.md
+ M Services/auth-service/src/test/java/com/example/auth_service/AbstractPostgresIntegrationTest.java
+ M Services/auth-service/src/test/java/com/example/auth_service/AuthServiceApplicationTests.java
+ M Services/auth-service/src/test/java/com/example/auth_service/controller/AuthControllerTest.java
+ M Services/auth-service/src/test/java/com/example/auth_service/integration/AuthServiceEndToEndIntegrationTest.java
+ M Services/auth-service/src/test/java/com/example/auth_service/integration/RefreshTokenIntegrationTest.java
+ M Services/auth-service/src/test/java/com/example/auth_service/integration/RegisterIntegrationTest.java
+ M Services/auth-service/src/test/java/com/example/auth_service/repository/UserRepositoryIntegrationTest.java
+ M Services/auth-service/src/test/java/com/example/auth_service/security/RefreshTokenSecurityTest.java
+ M Services/auth-service/src/test/java/com/example/auth_service/service/AuthServiceImplTest.java
+ M Services/job-service/pom.xml
+ M Services/job-service/src/main/java/com/example/job_service/JobServiceApplication.java
+ M Services/job-service/src/main/java/com/example/job_service/client/CompanyAuthorizationClient.java
+ M Services/job-service/src/main/java/com/example/job_service/common/FieldErrorResponse.java
+ M Services/job-service/src/main/java/com/example/job_service/configuration/InternalApiFilter.java
+ M Services/job-service/src/main/java/com/example/job_service/configuration/WebConfiguration.java
+ M Services/job-service/src/main/java/com/example/job_service/controller/EmployerJobController.java
+ M Services/job-service/src/main/java/com/example/job_service/controller/InternalJobController.java
+ M Services/job-service/src/main/java/com/example/job_service/controller/JobController.java
+ M Services/job-service/src/main/java/com/example/job_service/dto/JobDtos.java
+ M Services/job-service/src/main/java/com/example/job_service/entity/Category.java
+ M Services/job-service/src/main/java/com/example/job_service/entity/JobStatus.java
+ M Services/job-service/src/main/java/com/example/job_service/entity/Location.java
+ M Services/job-service/src/main/java/com/example/job_service/exception/ApiException.java
+ M Services/job-service/src/main/java/com/example/job_service/exception/GlobalExceptionHandler.java
+ M Services/job-service/src/main/java/com/example/job_service/repository/CategoryRepository.java
+ M Services/job-service/src/main/java/com/example/job_service/repository/JobRepository.java
+ M Services/job-service/src/main/java/com/example/job_service/repository/LocationRepository.java
+ M Services/job-service/src/main/java/com/example/job_service/security/IdentityArgumentResolver.java
+ M Services/job-service/src/main/java/com/example/job_service/security/RequestIdentity.java
+ M Services/job-service/src/main/java/com/example/job_service/service/JobService.java
+ M Services/job-service/src/main/java/com/example/job_service/service/JobSpecifications.java
+ M Services/job-service/src/main/resources/db/migration/V1__create_job_schema.sql
+ M Services/job-service/src/test/java/com/example/job_service/JobRulesTest.java
+ M Services/job-service/src/test/java/com/example/job_service/JobServiceApplicationTests.java
+ M Services/notification-service/pom.xml
+ M Services/notification-service/src/main/java/com/example/notification_service/NotificationServiceApplication.java
+ M Services/notification-service/src/main/java/com/example/notification_service/configuration/RabbitTopologyConfiguration.java
+ M Services/notification-service/src/main/java/com/example/notification_service/entity/Notification.java
+ M Services/notification-service/src/main/java/com/example/notification_service/entity/NotificationStatus.java
+ M Services/notification-service/src/main/java/com/example/notification_service/entity/ProcessedEvent.java
+ M Services/notification-service/src/main/java/com/example/notification_service/event/ApplicationEvent.java
+ M Services/notification-service/src/main/java/com/example/notification_service/messaging/ApplicationEventListener.java
+ M Services/notification-service/src/main/java/com/example/notification_service/repository/NotificationRepository.java
+ M Services/notification-service/src/main/java/com/example/notification_service/repository/ProcessedEventRepository.java
+ M Services/notification-service/src/main/java/com/example/notification_service/service/EmailTemplateService.java
+ M Services/notification-service/src/main/java/com/example/notification_service/service/NotificationProcessor.java
+ M Services/notification-service/src/main/resources/db/migration/V1__create_notification_schema.sql
+ M Services/notification-service/src/test/java/com/example/notification_service/EmailTemplateServiceTest.java
+ M Services/notification-service/src/test/java/com/example/notification_service/NotificationServiceApplicationTests.java
+ M Services/user-service/pom.xml
+ M Services/user-service/src/main/java/com/example/user_service/UserServiceApplication.java
+ M Services/user-service/src/main/java/com/example/user_service/common/ApiErrorResponse.java
+ M Services/user-service/src/main/java/com/example/user_service/common/ApiResponse.java
+ M Services/user-service/src/main/java/com/example/user_service/common/FieldErrorResponse.java
+ M Services/user-service/src/main/java/com/example/user_service/configuration/IdentityArgumentResolver.java
+ M Services/user-service/src/main/java/com/example/user_service/configuration/InternalApiFilter.java
+ M Services/user-service/src/main/java/com/example/user_service/configuration/WebConfiguration.java
+ M Services/user-service/src/main/java/com/example/user_service/controller/CandidateController.java
+ M Services/user-service/src/main/java/com/example/user_service/controller/CompanyController.java
+ M Services/user-service/src/main/java/com/example/user_service/controller/InternalController.java
+ M Services/user-service/src/main/java/com/example/user_service/dto/CompanyDtos.java
+ M Services/user-service/src/main/java/com/example/user_service/dto/CvDtos.java
+ M Services/user-service/src/main/java/com/example/user_service/dto/ProfileDtos.java
+ M Services/user-service/src/main/java/com/example/user_service/entity/CandidateProfile.java
+ M Services/user-service/src/main/java/com/example/user_service/entity/Company.java
+ M Services/user-service/src/main/java/com/example/user_service/entity/CompanyMember.java
+ M Services/user-service/src/main/java/com/example/user_service/entity/Cv.java
+ M Services/user-service/src/main/java/com/example/user_service/entity/MemberRole.java
+ M Services/user-service/src/main/java/com/example/user_service/exception/ApiException.java
+ M Services/user-service/src/main/java/com/example/user_service/exception/GlobalExceptionHandler.java
+ M Services/user-service/src/main/java/com/example/user_service/repository/CandidateProfileRepository.java
+ M Services/user-service/src/main/java/com/example/user_service/repository/CompanyMemberRepository.java
+ M Services/user-service/src/main/java/com/example/user_service/repository/CompanyRepository.java
+ M Services/user-service/src/main/java/com/example/user_service/repository/CvRepository.java
+ M Services/user-service/src/main/java/com/example/user_service/security/RequestIdentity.java
+ M Services/user-service/src/main/java/com/example/user_service/service/CompanyService.java
+ M Services/user-service/src/main/java/com/example/user_service/service/CvService.java
+ M Services/user-service/src/main/java/com/example/user_service/service/ProfileService.java
+ M Services/user-service/src/main/java/com/example/user_service/storage/MinioObjectStorage.java
+ M Services/user-service/src/main/java/com/example/user_service/storage/ObjectStorage.java
+ M Services/user-service/src/main/resources/db/migration/V1__create_user_service_schema.sql
+ M Services/user-service/src/test/java/com/example/user_service/CvServiceCompensationTest.java
+ M Services/user-service/src/test/java/com/example/user_service/UserServiceApplicationTests.java
+ M infrastructure/README.md
+ M infrastructure/docker-compose.yml
+ M infrastructure/observability/grafana/dashboards/recruitment-platform.json
+ M infrastructure/postgres/init-databases.sql
+?? Docs/job-metadata-report.md
+?? Docs/progress/job-metadata-git-status.txt
+?? Docs/ux-audit.md
+?? Docs/ux-report.md
+?? Frontend/e2e/job-metadata-live.spec.ts
+?? Frontend/e2e/ux-responsive.spec.ts
+?? Frontend/src/api/jobMetadata.ts
+?? Frontend/src/api/lookups.ts
+?? Frontend/src/components/useFocusScope.ts
+?? Frontend/src/features/candidate/CvManager.tsx
+?? Frontend/src/features/company/CompanySummary.tsx
+?? Frontend/src/features/employer/EmployerWorkspace.tsx
+?? Frontend/src/features/employer/JobForm.tsx
+?? Frontend/src/features/employer/RecruitmentLists.tsx
+?? Frontend/src/features/jobs/ReferenceSelect.tsx
+?? Frontend/src/styles/ux.css
+?? Frontend/src/test/job-metadata.test.tsx
+?? Frontend/src/test/ux-flows.test.tsx
+?? Frontend/src/utils/navigation.ts
+?? Services/job-service/src/main/java/com/example/job_service/controller/JobMetadataController.java
+?? Services/job-service/src/main/java/com/example/job_service/dto/JobCategoryResponse.java
+?? Services/job-service/src/main/java/com/example/job_service/dto/JobLocationResponse.java
+?? Services/job-service/src/main/java/com/example/job_service/service/JobMetadataService.java
+?? Services/job-service/src/main/resources/db/migration/V2__seed_job_categories_and_locations.sql
+?? Services/job-service/src/test/java/com/example/job_service/JobMetadataMigrationTest.java

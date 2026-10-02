@@ -1,1 +1,11 @@
-package com.example.notification_service.event;import java.time.Instant;import java.util.UUID;public record ApplicationEvent(UUID eventId,String eventType,int eventVersion,Instant occurredAt,String producer,Data data){public record Data(UUID applicationId,UUID jobId,UUID companyId,UUID candidateId,String candidateEmail,String jobTitle,String oldStatus,String newStatus,String correlationId){}}
+package com.example.notification_service.event;
+
+import java.time.Instant;
+import java.util.UUID;
+
+public record ApplicationEvent(UUID eventId, String eventType, int eventVersion, Instant occurredAt, String producer,
+                               Data data) {
+    public record Data(UUID applicationId, UUID jobId, UUID companyId, UUID candidateId, String candidateEmail,
+                       String jobTitle, String oldStatus, String newStatus, String correlationId) {
+    }
+}

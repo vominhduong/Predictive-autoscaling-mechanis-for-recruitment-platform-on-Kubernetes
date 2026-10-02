@@ -16,12 +16,14 @@ import java.util.UUID;
 public class IdentityArgumentResolver implements HandlerMethodArgumentResolver {
     private static final Set<String> ROLES = Set.of("CANDIDATE", "EMPLOYER", "ADMIN");
 
-    @Override public boolean supportsParameter(MethodParameter parameter) {
+    @Override
+    public boolean supportsParameter(MethodParameter parameter) {
         return parameter.getParameterType() == RequestIdentity.class;
     }
 
-    @Override public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mav,
-                                            NativeWebRequest webRequest, WebDataBinderFactory binder) {
+    @Override
+    public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mav,
+                                  NativeWebRequest webRequest, WebDataBinderFactory binder) {
         HttpServletRequest request = webRequest.getNativeRequest(HttpServletRequest.class);
         try {
             String role = request.getHeader("X-User-Role");

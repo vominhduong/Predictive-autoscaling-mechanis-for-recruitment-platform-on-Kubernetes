@@ -1,1 +1,9 @@
-package com.example.job_service.repository;import com.example.job_service.entity.*;import org.springframework.data.jpa.repository.*;import java.util.UUID;public interface JobRepository extends JpaRepository<Job,UUID>,JpaSpecificationExecutor<Job>{}
+package com.example.job_service.repository;
+
+import com.example.job_service.entity.*;
+import org.springframework.data.jpa.repository.*;
+
+import java.util.UUID;
+
+public interface JobRepository extends JpaRepository<Job, UUID>, JpaSpecificationExecutor<Job> {
+}

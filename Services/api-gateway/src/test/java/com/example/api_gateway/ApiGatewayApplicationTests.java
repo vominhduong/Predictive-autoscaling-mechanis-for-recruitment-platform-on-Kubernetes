@@ -46,9 +46,12 @@ class ApiGatewayApplicationTests {
     private static final String EMAIL = "candidate@example.com";
     private static final String ROLE = "CANDIDATE";
 
-    @LocalServerPort private int port;
-    @Autowired private ApplicationContext applicationContext;
-    @Autowired private RouteDefinitionLocator routeDefinitionLocator;
+    @LocalServerPort
+    private int port;
+    @Autowired
+    private ApplicationContext applicationContext;
+    @Autowired
+    private RouteDefinitionLocator routeDefinitionLocator;
 
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
@@ -199,6 +202,19 @@ class ApiGatewayApplicationTests {
     private WebTestClient client() {
         return WebTestClient.bindToServer().baseUrl("http://localhost:" + port)
                 .responseTimeout(Duration.ofSeconds(5)).build();
+    }
+
+    @Test
+    void metadataAndJobDetailUseExistingPublicJobRoute() {
+        for (String path : new String[]{"/api/v1/jobs/metadata/categories", "/api/v1/jobs/metadata/locations",
+                "/api/v1/jobs/" + UUID.randomUUID()}) {
+            client().get().uri(path).exchange().expectStatus().isOk()
+                    .expectHeader().valueEquals("Echo-Path", path)
+                    .expectHeader().doesNotExist("Echo-X-User-Id");
+        }
+        client().post().uri("/api/v1/jobs/metadata/categories").bodyValue("{}")
+                .exchange().expectStatus().isUnauthorized();
+        client().get().uri("/internal/jobs/123/eligibility").exchange().expectStatus().isUnauthorized();
     }
 
     private String token(UUID userId, Instant issuedAt, Duration lifetime) throws Exception {

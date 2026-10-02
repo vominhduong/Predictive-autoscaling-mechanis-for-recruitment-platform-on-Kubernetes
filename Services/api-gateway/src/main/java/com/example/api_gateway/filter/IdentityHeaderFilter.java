@@ -38,6 +38,10 @@ public class IdentityHeaderFilter implements GlobalFilter, Ordered {
 
     private enum AnonymousPrincipal implements java.security.Principal {
         INSTANCE;
-        @Override public String getName() { return "anonymous"; }
+
+        @Override
+        public String getName() {
+            return "anonymous";
+        }
     }
 }

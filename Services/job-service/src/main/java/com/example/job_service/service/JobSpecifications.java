@@ -8,10 +8,11 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 public final class JobSpecifications {
-    private JobSpecifications() {}
+    private JobSpecifications() {
+    }
 
     public static Specification<Job> publicJobs(String keyword, UUID locationId, UUID categoryId,
-                                                 BigDecimal salaryMin, EmploymentType employmentType) {
+                                                BigDecimal salaryMin, EmploymentType employmentType) {
         return (root, query, cb) -> {
             var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
             predicates.add(cb.equal(root.get("status"), JobStatus.PUBLISHED));

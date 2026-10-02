@@ -1,7 +1,9 @@
 package com.example.auth_service.security;
 
 import org.junit.jupiter.api.Test;
+
 import java.util.Base64;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RefreshTokenSecurityTest {

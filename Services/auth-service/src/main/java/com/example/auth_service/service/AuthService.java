@@ -10,7 +10,10 @@ import com.example.auth_service.dto.response.UserResponse;
 public interface AuthService {
 
     UserResponse register(RegisterRequest request);
+
     LoginResponse login(LoginRequest request);
+
     LoginResponse refresh(RefreshTokenRequest request);
+
     void logout(LogoutRequest request);
 }

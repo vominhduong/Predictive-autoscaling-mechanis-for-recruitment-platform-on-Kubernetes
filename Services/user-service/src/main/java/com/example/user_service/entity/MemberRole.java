@@ -1,2 +1,3 @@
 package com.example.user_service.entity;
-public enum MemberRole { OWNER, RECRUITER }
+
+public enum MemberRole {OWNER, RECRUITER}

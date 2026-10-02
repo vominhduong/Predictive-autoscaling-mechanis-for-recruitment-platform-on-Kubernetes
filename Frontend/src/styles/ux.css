@@ -1,0 +1,252 @@
+.reference-select {
+    min-width: 0;
+    display: grid;
+    align-content: start;
+    gap: 8px;
+}
+
+.reference-select label {
+    font-weight: 650;
+    font-size: .85rem;
+}
+
+.reference-select select, .reference-select input, .desktop-sort select {
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px;
+    background: white;
+    color: var(--ink);
+}
+
+details summary {
+    cursor: pointer;
+    padding: 10px 0;
+    font-size: .85rem;
+    color: var(--color-primary-700);
+}
+
+details p, details small {
+    font-size: .8rem;
+    color: var(--muted);
+}
+
+.reference-select details {
+    max-width: 100%;
+}
+
+.job-search {
+    align-items: start;
+}
+
+.job-search .search-field {
+    min-height: 80px;
+}
+
+.job-search .search-submit {
+    align-self: start;
+    min-height: 48px;
+}
+
+.desktop-sort {
+    display: grid;
+    gap: 4px;
+    max-width: 180px;
+}
+
+.filter-done {
+    display: none;
+}
+
+.dialog {
+    max-height: calc(100dvh - 40px);
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+}
+
+.dialog-actions {
+    position: sticky;
+    bottom: -28px;
+    background: white;
+    padding: 14px 0;
+}
+
+.checklist small {
+    display: block;
+    color: var(--muted);
+    margin-top: 4px;
+}
+
+.panel, .page, .portal-main, .company-tile, .cv-card, .application-card, .employer-job {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.sidebar {
+    overflow-y: auto;
+}
+
+.sidebar-account {
+    padding-bottom: 12px;
+}
+
+.job-editor {
+    max-width: 900px;
+    margin-inline: auto;
+}
+
+.job-editor section {
+    display: grid;
+    gap: 14px;
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
+}
+
+.job-editor h2 {
+    font-size: 1.2rem;
+}
+
+.job-editor fieldset, form fieldset {
+    min-width: 0;
+    border: 0;
+    padding: 0;
+}
+
+.sticky-actions {
+    grid-row: 1;
+    position: sticky;
+    top: 68px;
+    padding: 14px 0;
+    background: white;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    z-index: 2;
+}
+
+.job-editor :is(input,select,textarea,section) {
+    scroll-margin-top: 170px;
+}
+
+.preserve-lines {
+    white-space: pre-wrap;
+}
+
+.job-card-v2 .job-company {
+    margin-bottom: 10px;
+    font-family: inherit;
+}
+
+.job-meta-grid > div:nth-child(2) {
+    order: -1;
+}
+
+.job-meta-grid > div:nth-child(2) dd {
+    font-size: 1rem;
+    color: var(--color-primary-700);
+}
+
+.actions {
+    flex-wrap: wrap;
+}
+
+button, .button, input, select {
+    min-height: 44px;
+}
+
+input[type=checkbox], input[type=radio] {
+    min-height: 20px;
+    min-width: 20px;
+}
+
+:focus-visible {
+    outline: 3px solid #245ccc !important;
+    outline-offset: 3px !important;
+}
+
+.notice a {
+    text-decoration: underline;
+    font-weight: 650;
+}
+
+.state .skeleton-list {
+    width: 100%;
+}
+
+@media (max-width: 1024px) {
+    .sidebar:not(.open) {
+        visibility: hidden;
+    }
+
+    .sidebar.open {
+        visibility: visible;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 900px) {
+    .nav.open {
+        position: fixed;
+        inset: 0 0 0 auto;
+        width: min(360px, 90vw);
+        z-index: 95;
+        justify-content: center;
+        box-shadow: -12px 0 70px #0f172a55;
+    }
+}
+
+@media (max-width: 768px) {
+    .filter-sidebar:not(.open) {
+        visibility: hidden;
+    }
+
+    .filter-sidebar.open {
+        visibility: visible;
+    }
+
+    .filter-done {
+        display: flex;
+        width: 100%;
+        margin-top: 18px;
+    }
+
+    .desktop-sort {
+        display: none;
+    }
+
+    .job-search .search-field {
+        min-height: 64px;
+    }
+
+    .dialog-actions {
+        bottom: -22px;
+    }
+
+    .sticky-actions .button {
+        flex: 1;
+    }
+
+    .page {
+        padding-bottom: max(36px, env(safe-area-inset-bottom));
+    }
+
+    .company-tile {
+        display: block;
+    }
+
+    .job-detail-grid .apply-panel {
+        border-top: 4px solid var(--color-primary-600);
+    }
+}
+
+.metadata-skeleton {
+    display: block;
+    min-height: 1.25rem;
+    border-radius: .25rem;
+    background: var(--surface-muted, #f1f5f9);
+}

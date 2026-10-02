@@ -1,6 +1,7 @@
 # Recruitment Platform development infrastructure
 
-Docker Compose này chỉ chạy hạ tầng dùng chung cho môi trường development: PostgreSQL, Redis, RabbitMQ, MinIO và Mailpit. Các Spring Boot service không nằm trong Compose này.
+Docker Compose này chỉ chạy hạ tầng dùng chung cho môi trường development: PostgreSQL, Redis, RabbitMQ, MinIO và
+Mailpit. Các Spring Boot service không nằm trong Compose này.
 
 ## Chuẩn bị biến môi trường
 
@@ -64,17 +65,18 @@ Xóa container, network và toàn bộ named volume của dự án:
 docker compose --env-file .env -f infrastructure/docker-compose.yml down --volumes
 ```
 
-> Cảnh báo: lệnh `down --volumes` xóa vĩnh viễn dữ liệu PostgreSQL, Redis, RabbitMQ và MinIO của dự án này. Chỉ chạy khi chủ động muốn tạo lại môi trường sạch.
+> Cảnh báo: lệnh `down --volumes` xóa vĩnh viễn dữ liệu PostgreSQL, Redis, RabbitMQ và MinIO của dự án này. Chỉ chạy khi
+> chủ động muốn tạo lại môi trường sạch.
 
 ## Địa chỉ dịch vụ local
 
-| Dịch vụ | Địa chỉ |
-|---|---|
+| Dịch vụ             | Địa chỉ                  |
+|---------------------|--------------------------|
 | RabbitMQ Management | <http://localhost:15672> |
-| MinIO Console | <http://localhost:9001> |
-| MinIO API | <http://localhost:9000> |
-| Mailpit Web UI | <http://localhost:8025> |
-| Mailpit SMTP | `localhost:1025` |
+| MinIO Console       | <http://localhost:9001>  |
+| MinIO API           | <http://localhost:9000>  |
+| Mailpit Web UI      | <http://localhost:8025>  |
+| Mailpit SMTP        | `localhost:1025`         |
 
 Các port có thể thay đổi trong `.env`.
 
@@ -88,7 +90,8 @@ spring.datasource.username=recruitment
 spring.datasource.password=change-me
 ```
 
-Thay `auth_db` bằng `user_db`, `job_db`, `application_db` hoặc `notification_db` cho service tương ứng. Nên đọc username/password từ biến môi trường thay vì lưu credential thật trong `application.properties`.
+Thay `auth_db` bằng `user_db`, `job_db`, `application_db` hoặc `notification_db` cho service tương ứng. Nên đọc
+username/password từ biến môi trường thay vì lưu credential thật trong `application.properties`.
 
 Khi Spring Boot chạy trong cùng Docker network, dùng DNS service name `postgres` và container port `5432`:
 
@@ -96,7 +99,8 @@ Khi Spring Boot chạy trong cùng Docker network, dùng DNS service name `postg
 spring.datasource.url=jdbc:postgresql://postgres:5432/auth_db
 ```
 
-Container của ứng dụng phải tham gia external network `recruitment-network`. Host port không được dùng cho giao tiếp nội bộ giữa các container.
+Container của ứng dụng phải tham gia external network `recruitment-network`. Host port không được dùng cho giao tiếp nội
+bộ giữa các container.
 
 ## Kiểm tra các database đã tạo
 
@@ -106,4 +110,5 @@ Sau khi PostgreSQL healthy, liệt kê database bằng:
 docker exec recruitment-postgres psql -U recruitment -d postgres -c "SELECT datname FROM pg_database WHERE datname IN ('auth_db', 'user_db', 'job_db', 'application_db', 'notification_db') ORDER BY datname;"
 ```
 
-Script `postgres/init-databases.sql` chỉ chạy khi PostgreSQL khởi tạo một data volume trống lần đầu. Nếu volume đã tồn tại, sửa script sẽ không tự động thay đổi các database trong volume đó.
+Script `postgres/init-databases.sql` chỉ chạy khi PostgreSQL khởi tạo một data volume trống lần đầu. Nếu volume đã tồn
+tại, sửa script sẽ không tự động thay đổi các database trong volume đó.

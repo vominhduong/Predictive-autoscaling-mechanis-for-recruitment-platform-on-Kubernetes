@@ -1,6 +1,7 @@
 package com.example.auth_service.security;
 
 import org.springframework.stereotype.Service;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

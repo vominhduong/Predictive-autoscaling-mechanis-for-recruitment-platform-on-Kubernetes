@@ -51,7 +51,9 @@ public class JwtService {
                 JwsHeader.with(SignatureAlgorithm.RS256).build(), claims)).getTokenValue();
     }
 
-    public long getExpirationSeconds() { return expiration.toSeconds(); }
+    public long getExpirationSeconds() {
+        return expiration.toSeconds();
+    }
 
     public AuthenticatedUser authenticate(String token) {
         try {

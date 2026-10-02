@@ -52,7 +52,7 @@ public class GlobalExceptionHandler {
     }
 
     private ResponseEntity<ApiErrorResponse> out(HttpStatus status, String code, String message,
-                                                  List<FieldErrorResponse> fields, HttpServletRequest request) {
+                                                 List<FieldErrorResponse> fields, HttpServletRequest request) {
         String trace = trace(request);
         return ResponseEntity.status(status).header("X-Correlation-ID", trace)
                 .body(new ApiErrorResponse(code, message, fields, trace));

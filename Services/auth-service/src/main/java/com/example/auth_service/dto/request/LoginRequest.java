@@ -9,4 +9,5 @@ public record LoginRequest(
         String email,
         @NotBlank @Size(max = 72)
         String password
-) {}
+) {
+}

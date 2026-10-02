@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -13,7 +14,8 @@ import java.util.UUID;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class RefreshToken {
-    @Id @GeneratedValue(strategy = GenerationType.UUID)
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
@@ -36,10 +38,22 @@ public class RefreshToken {
     }
 
     @PrePersist
-    void onCreate() { createdAt = Instant.now(); }
-    public boolean isExpired(Instant now) { return !expiresAt.isAfter(now); }
-    public boolean isRevoked() { return revokedAt != null; }
-    public boolean isActive(Instant now) { return !isRevoked() && !isExpired(now); }
+    void onCreate() {
+        createdAt = Instant.now();
+    }
+
+    public boolean isExpired(Instant now) {
+        return !expiresAt.isAfter(now);
+    }
+
+    public boolean isRevoked() {
+        return revokedAt != null;
+    }
+
+    public boolean isActive(Instant now) {
+        return !isRevoked() && !isExpired(now);
+    }
+
     public void revoke(Instant now) {
         if (revokedAt == null) {
             revokedAt = now;

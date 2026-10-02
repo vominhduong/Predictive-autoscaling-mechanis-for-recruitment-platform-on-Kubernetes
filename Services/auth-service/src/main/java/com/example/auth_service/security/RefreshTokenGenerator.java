@@ -1,6 +1,7 @@
 package com.example.auth_service.security;
 
 import org.springframework.stereotype.Component;
+
 import java.security.SecureRandom;
 import java.util.Base64;
 

@@ -10,6 +10,13 @@ import java.util.List;
 @Configuration
 public class WebConfiguration implements WebMvcConfigurer {
     private final IdentityArgumentResolver identity;
-    public WebConfiguration(IdentityArgumentResolver identity) { this.identity = identity; }
-    @Override public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) { resolvers.add(identity); }
+
+    public WebConfiguration(IdentityArgumentResolver identity) {
+        this.identity = identity;
+    }
+
+    @Override
+    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+        resolvers.add(identity);
+    }
 }

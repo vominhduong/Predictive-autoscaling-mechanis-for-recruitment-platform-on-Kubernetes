@@ -36,14 +36,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AuthServiceEndToEndIntegrationTest extends AbstractPostgresIntegrationTest {
     private static final String PASSWORD = "StrongPass@123";
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private ObjectMapper objectMapper;
-    @Autowired private UserRepository userRepository;
-    @Autowired private RefreshTokenRepository refreshTokenRepository;
-    @Autowired private PasswordEncoder passwordEncoder;
-    @Autowired private TokenHashService tokenHashService;
-    @Autowired private JwtDecoder jwtDecoder;
-    @Autowired private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private MockMvc mockMvc;
+    @Autowired
+    private ObjectMapper objectMapper;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    @Autowired
+    private TokenHashService tokenHashService;
+    @Autowired
+    private JwtDecoder jwtDecoder;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void resetData() {
@@ -51,35 +59,41 @@ class AuthServiceEndToEndIntegrationTest extends AbstractPostgresIntegrationTest
         userRepository.deleteAll();
     }
 
-    @Test void registerCandidateSuccessfully() throws Exception {
+    @Test
+    void registerCandidateSuccessfully() throws Exception {
         register(uniqueEmail(), "CANDIDATE").andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.role").value("CANDIDATE"));
     }
 
-    @Test void registerEmployerSuccessfully() throws Exception {
+    @Test
+    void registerEmployerSuccessfully() throws Exception {
         register(uniqueEmail(), "EMPLOYER").andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.role").value("EMPLOYER"));
     }
 
-    @Test void registerAdminIsRejected() throws Exception {
+    @Test
+    void registerAdminIsRejected() throws Exception {
         register(uniqueEmail(), "ADMIN").andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_ROLE"));
     }
 
-    @Test void duplicateEmailIgnoringCaseReturnsConflict() throws Exception {
+    @Test
+    void duplicateEmailIgnoringCaseReturnsConflict() throws Exception {
         String email = uniqueEmail();
         register(email, "CANDIDATE").andExpect(status().isCreated());
         register(email.toUpperCase(), "CANDIDATE").andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("EMAIL_ALREADY_EXISTS"));
     }
 
-    @Test void emailAndPasswordValidationAreApplied() throws Exception {
+    @Test
+    void emailAndPasswordValidationAreApplied() throws Exception {
         mockMvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"invalid\",\"password\":\"weak\",\"role\":\"CANDIDATE\"}"))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
 
-    @Test void passwordIsStoredAsBcrypt() throws Exception {
+    @Test
+    void passwordIsStoredAsBcrypt() throws Exception {
         String email = uniqueEmail();
         register(email, "CANDIDATE").andExpect(status().isCreated());
         String hash = userRepository.findByEmailIgnoreCase(email).orElseThrow().getPasswordHash();
@@ -87,33 +101,39 @@ class AuthServiceEndToEndIntegrationTest extends AbstractPostgresIntegrationTest
         assertThat(passwordEncoder.matches(PASSWORD, hash)).isTrue();
     }
 
-    @Test void loginSuccessfullyReturnsTokenPair() throws Exception {
+    @Test
+    void loginSuccessfullyReturnsTokenPair() throws Exception {
         String email = registeredUser("CANDIDATE");
         login(email, PASSWORD).andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
                 .andExpect(jsonPath("$.data.refreshToken").isNotEmpty());
     }
 
-    @Test void wrongPasswordReturnsInvalidCredentials() throws Exception {
+    @Test
+    void wrongPasswordReturnsInvalidCredentials() throws Exception {
         String email = registeredUser("CANDIDATE");
         login(email, "WrongPass@123").andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
     }
 
-    @Test void unknownEmailReturnsSameInvalidCredentialsError() throws Exception {
+    @Test
+    void unknownEmailReturnsSameInvalidCredentialsError() throws Exception {
         login(uniqueEmail(), PASSWORD).andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
     }
 
-    @Test void lockedUserCannotLogin() throws Exception {
+    @Test
+    void lockedUserCannotLogin() throws Exception {
         assertStatusCannotLogin("LOCKED", 423, "ACCOUNT_LOCKED");
     }
 
-    @Test void disabledUserCannotLogin() throws Exception {
+    @Test
+    void disabledUserCannotLogin() throws Exception {
         assertStatusCannotLogin("DISABLED", 403, "ACCOUNT_DISABLED");
     }
 
-    @Test void jwtContainsRequiredClaimsAndExpiry() throws Exception {
+    @Test
+    void jwtContainsRequiredClaimsAndExpiry() throws Exception {
         String email = registeredUser("EMPLOYER");
         JsonNode data = data(login(email, PASSWORD).andReturn());
         var jwt = jwtDecoder.decode(data.get("accessToken").asText());
@@ -125,7 +145,8 @@ class AuthServiceEndToEndIntegrationTest extends AbstractPostgresIntegrationTest
         assertThat(Duration.between(jwt.getIssuedAt(), jwt.getExpiresAt())).isEqualTo(Duration.ofMinutes(30));
     }
 
-    @Test void tamperedJwtIsRejectedBySecurity() throws Exception {
+    @Test
+    void tamperedJwtIsRejectedBySecurity() throws Exception {
         String token = data(login(registeredUser("CANDIDATE"), PASSWORD).andReturn())
                 .get("accessToken").asText();
         String[] parts = token.split("\\.");
@@ -136,35 +157,40 @@ class AuthServiceEndToEndIntegrationTest extends AbstractPostgresIntegrationTest
                 .andExpect(status().isUnauthorized());
     }
 
-    @Test void loginStoresOnlyRefreshTokenHash() throws Exception {
+    @Test
+    void loginStoresOnlyRefreshTokenHash() throws Exception {
         JsonNode data = data(login(registeredUser("CANDIDATE"), PASSWORD).andReturn());
         String raw = data.get("refreshToken").asText();
         var stored = refreshTokenRepository.findByTokenHash(tokenHashService.hash(raw)).orElseThrow();
         assertThat(stored.getTokenHash()).isNotEqualTo(raw).hasSize(64);
     }
 
-    @Test void refreshSuccessfullyReturnsNewPair() throws Exception {
+    @Test
+    void refreshSuccessfullyReturnsNewPair() throws Exception {
         String raw = loginRefreshToken();
         refresh(raw).andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
                 .andExpect(jsonPath("$.data.refreshToken").isNotEmpty());
     }
 
-    @Test void refreshRotatesToken() throws Exception {
+    @Test
+    void refreshRotatesToken() throws Exception {
         String oldToken = loginRefreshToken();
         String newToken = data(refresh(oldToken).andReturn()).get("refreshToken").asText();
         assertThat(newToken).isNotEqualTo(oldToken);
         assertThat(refreshTokenRepository.findByTokenHash(tokenHashService.hash(oldToken)).orElseThrow().isRevoked()).isTrue();
     }
 
-    @Test void rotatedTokenCannotBeReused() throws Exception {
+    @Test
+    void rotatedTokenCannotBeReused() throws Exception {
         String oldToken = loginRefreshToken();
         refresh(oldToken).andExpect(status().isOk());
         refresh(oldToken).andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_TOKEN"));
     }
 
-    @Test void expiredRefreshTokenIsRejected() throws Exception {
+    @Test
+    void expiredRefreshTokenIsRejected() throws Exception {
         String raw = loginRefreshToken();
         jdbcTemplate.update("update refresh_tokens set expires_at = ? where token_hash = ?",
                 OffsetDateTime.now(ZoneOffset.UTC).minusSeconds(1), tokenHashService.hash(raw));
@@ -172,26 +198,30 @@ class AuthServiceEndToEndIntegrationTest extends AbstractPostgresIntegrationTest
                 .andExpect(jsonPath("$.code").value("INVALID_TOKEN"));
     }
 
-    @Test void logoutRevokesRefreshToken() throws Exception {
+    @Test
+    void logoutRevokesRefreshToken() throws Exception {
         TokenPair tokens = loginTokenPair();
         logout(tokens.refreshToken(), tokens.accessToken()).andExpect(status().isNoContent());
         assertThat(refreshTokenRepository.findByTokenHash(tokenHashService.hash(tokens.refreshToken()))
                 .orElseThrow().isRevoked()).isTrue();
     }
 
-    @Test void refreshAfterLogoutIsRejected() throws Exception {
+    @Test
+    void refreshAfterLogoutIsRejected() throws Exception {
         TokenPair tokens = loginTokenPair();
         logout(tokens.refreshToken(), tokens.accessToken()).andExpect(status().isNoContent());
         refresh(tokens.refreshToken()).andExpect(status().isUnauthorized());
     }
 
-    @Test void secondLogoutDoesNotFail() throws Exception {
+    @Test
+    void secondLogoutDoesNotFail() throws Exception {
         TokenPair tokens = loginTokenPair();
         logout(tokens.refreshToken(), tokens.accessToken()).andExpect(status().isNoContent());
         logout(tokens.refreshToken(), tokens.accessToken()).andExpect(status().isNoContent());
     }
 
-    @Test void logoutWithoutAccessTokenReturnsStandardUnauthorizedResponse() throws Exception {
+    @Test
+    void logoutWithoutAccessTokenReturnsStandardUnauthorizedResponse() throws Exception {
         logout("opaque-refresh-token", null)
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
@@ -201,15 +231,18 @@ class AuthServiceEndToEndIntegrationTest extends AbstractPostgresIntegrationTest
                 .andExpect(jsonPath("$.timestamp").isNotEmpty());
     }
 
-    @Test void healthEndpointIsPublic() throws Exception {
+    @Test
+    void healthEndpointIsPublic() throws Exception {
         mockMvc.perform(get("/actuator/health")).andExpect(status().isOk());
     }
 
-    @Test void protectedEndpointWithoutTokenReturnsUnauthorized() throws Exception {
+    @Test
+    void protectedEndpointWithoutTokenReturnsUnauthorized() throws Exception {
         mockMvc.perform(get("/actuator/info")).andExpect(status().isUnauthorized());
     }
 
-    @Test void responsesDoNotExposeCredentialOrTokenHashes() throws Exception {
+    @Test
+    void responsesDoNotExposeCredentialOrTokenHashes() throws Exception {
         MvcResult result = login(registeredUser("CANDIDATE"), PASSWORD).andReturn();
         JsonNode response = objectMapper.readTree(result.getResponse().getContentAsString());
         assertThat(response.findValue("password")).isNull();
@@ -217,7 +250,8 @@ class AuthServiceEndToEndIntegrationTest extends AbstractPostgresIntegrationTest
         assertThat(response.findValue("tokenHash")).isNull();
     }
 
-    @Test void errorResponseContainsStandardMetadata() throws Exception {
+    @Test
+    void errorResponseContainsStandardMetadata() throws Exception {
         login(uniqueEmail(), PASSWORD).andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"))
                 .andExpect(jsonPath("$.message").isNotEmpty())
@@ -225,7 +259,8 @@ class AuthServiceEndToEndIntegrationTest extends AbstractPostgresIntegrationTest
                 .andExpect(jsonPath("$.timestamp").isNotEmpty());
     }
 
-    @Test void flywayMigrationWasApplied() {
+    @Test
+    void flywayMigrationWasApplied() {
         Integer count = jdbcTemplate.queryForObject(
                 "select count(*) from flyway_schema_history where version = '1' and success = true", Integer.class);
         assertThat(count).isEqualTo(1);
@@ -285,5 +320,6 @@ class AuthServiceEndToEndIntegrationTest extends AbstractPostgresIntegrationTest
         return UUID.randomUUID() + "@example.com";
     }
 
-    private record TokenPair(String accessToken, String refreshToken) {}
+    private record TokenPair(String accessToken, String refreshToken) {
+    }
 }

@@ -8,7 +8,8 @@ import java.time.*;
 import java.util.*;
 
 public final class JobDtos {
-    private JobDtos() {}
+    private JobDtos() {
+    }
 
     public record Write(
             @NotNull UUID companyId,
@@ -23,17 +24,27 @@ public final class JobDtos {
             @NotBlank @Pattern(regexp = "[A-Z]{3}") String salaryCurrency,
             boolean salaryNegotiable,
             @NotNull @Future LocalDate applicationDeadline,
-            Long version) {}
+            Long version) {
+    }
 
-    public record StatusChange(@NotNull JobStatus status, @NotNull Long version) {}
-    public record Summary(UUID id, String name, String slug) {}
+    public record StatusChange(@NotNull JobStatus status, @NotNull Long version) {
+    }
+
+    public record Summary(UUID id, String name, String slug) {
+    }
+
     public record View(UUID id, UUID companyId, String title, String description, String requirements,
                        Summary location, Summary category, EmploymentType employmentType,
                        BigDecimal salaryMin, BigDecimal salaryMax, String salaryCurrency,
                        boolean salaryNegotiable, JobStatus status, LocalDate applicationDeadline,
-                       Instant publishedAt, Instant createdAt, Instant updatedAt, long version) {}
+                       Instant publishedAt, Instant createdAt, Instant updatedAt, long version) {
+    }
+
     public record PageData<T>(List<T> content, int page, int size, long totalElements,
-                              int totalPages, boolean first, boolean last) {}
+                              int totalPages, boolean first, boolean last) {
+    }
+
     public record Eligibility(UUID jobId, UUID companyId, UUID createdBy, String title, JobStatus status,
-                              LocalDate applicationDeadline, boolean acceptingApplications, long version) {}
+                              LocalDate applicationDeadline, boolean acceptingApplications, long version) {
+    }
 }

@@ -85,6 +85,8 @@ CV objects are stored in the private `recruitment-cvs` bucket. Upload writes the
 | PATCH | `/jobs/{jobId}/status` | Job owner — publish/close |
 | GET | `/jobs/{jobId}` | Public — chi tiết |
 | GET | `/jobs` | Public — search/filter/page |
+| GET | `/jobs/metadata/categories` | Public — ngành nghề active, tên tăng dần |
+| GET | `/jobs/metadata/locations` | Public — địa điểm active, tên tăng dần |
 | GET | `/employer/jobs` | Employer — Job được quản lý |
 | DELETE | `/jobs/{jobId}` | Owner — chỉ DRAFT nếu policy cho phép |
 
@@ -98,12 +100,32 @@ Create Job:
 {
   "companyId":"uuid","title":"Junior Java Developer",
   "description":"...","requirements":"...",
-  "salaryMin":15000000,"salaryMax":25000000,"negotiable":false,
-  "locationId":"uuid","categoryId":"uuid","deadline":"2026-10-31"
+  "salaryMin":15000000,"salaryMax":25000000,"salaryNegotiable":false,
+  "salaryCurrency":"VND","employmentType":"FULL_TIME",
+  "locationId":"uuid","categoryId":"uuid","applicationDeadline":"2026-10-31",
+  "version":null
 }
 ```
 
 Internal: `GET /internal/jobs/{jobId}/eligibility` trả status, deadline và Job/owner snapshot.
+
+### Job metadata
+
+Hai endpoint `GET /api/v1/jobs/metadata/categories` và `GET /api/v1/jobs/metadata/locations` không yêu cầu JWT hoặc internal token. Dùng route Gateway `/api/v1/jobs/**` hiện có; `/internal/**` vẫn không được route. Các static mapping metadata không xung đột với `/jobs/{jobId}`.
+
+Success envelope có `data` là mảng (không phân trang), chỉ chứa `{id,name,slug}`. Query chỉ lấy `active=true`, sắp xếp `name ASC` theo collation PostgreSQL; không trả entity, timestamps hoặc cờ active.
+
+```json
+{"success":true,"message":"Job categories retrieved","data":[{"id":"a0000000-0000-4000-8000-000000000005","name":"DevOps / Cloud","slug":"devops-cloud"}],"timestamp":"2026-10-02T00:00:00Z"}
+```
+
+Location dùng cùng cấu trúc, ví dụ `{ "id":"b0000000-0000-4000-8000-000000000001", "name":"Hồ Chí Minh", "slug":"ho-chi-minh" }`.
+
+Create/update nhận `categoryId` và `locationId` dạng UUID. Không tồn tại: HTTP 404 `CATEGORY_NOT_FOUND` / `LOCATION_NOT_FOUND`; inactive: HTTP 409 `CATEGORY_INACTIVE` / `LOCATION_INACTIVE`. Update phải gửi `version` hiện tại. Frontend yêu cầu chọn lại khi lựa chọn cũ không còn trong danh mục active.
+
+Job search/detail/create/update giữ nguyên summary `category: {id,name,slug}` và `location: {id,name,slug}`. Summary của Job cũ vẫn có tên dù danh mục đã inactive. Danh sách Job dùng hai bulk lookup cho các ID trong trang, không query danh mục từng Job. Frontend hiển thị summary trực tiếp, không gọi metadata theo từng card.
+
+Frontend dùng `VITE_API_BASE_URL`, shared TanStack Query keys `['job-metadata','categories']` và `['job-metadata','locations']`, stale time 30 phút, garbage collection 60 phút. Retry thủ công khi lỗi; search từ khóa vẫn dùng được. Bộ lọc lưu UUID trong URL, chip dùng tên hoặc fallback an toàn nếu UUID không còn khả dụng.
 
 ## 5. Application API
 

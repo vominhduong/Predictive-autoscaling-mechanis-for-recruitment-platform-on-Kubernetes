@@ -6,4 +6,5 @@ public record LoginResponse(
         String tokenType,
         long expiresIn,
         long refreshExpiresIn
-) {}
+) {
+}

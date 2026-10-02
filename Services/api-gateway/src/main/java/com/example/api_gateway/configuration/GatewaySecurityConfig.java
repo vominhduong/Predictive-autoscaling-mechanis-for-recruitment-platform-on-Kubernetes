@@ -21,8 +21,8 @@ import java.security.interfaces.RSAPublicKey;
 public class GatewaySecurityConfig {
     @Bean
     SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http,
-                                                   JsonAuthenticationEntryPoint entryPoint,
-                                                   JsonAccessDeniedHandler deniedHandler) {
+                                                  JsonAuthenticationEntryPoint entryPoint,
+                                                  JsonAccessDeniedHandler deniedHandler) {
         return http.csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
@@ -37,7 +37,8 @@ public class GatewaySecurityConfig {
                         .pathMatchers(HttpMethod.GET, "/api/v1/companies/*").permitAll()
                         .pathMatchers(HttpMethod.GET, "/actuator/health/**", "/actuator/prometheus").permitAll()
                         .anyExchange().authenticated())
-                .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> { })
+                .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> {
+                        })
                         .authenticationEntryPoint(entryPoint)
                         .accessDeniedHandler(deniedHandler))
                 .build();

@@ -7,6 +7,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -15,15 +16,18 @@ import java.util.UUID;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
-    @Id @GeneratedValue(strategy = GenerationType.UUID)
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     @Column(nullable = false, length = 255)
     private String email;
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
-    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 30)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
     private UserRole role;
-    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 30)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
     private UserStatus status;
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified;
@@ -31,7 +35,8 @@ public class User {
     private Instant createdAt;
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
-    @Version @Column(nullable = false)
+    @Version
+    @Column(nullable = false)
     private long version;
 
     @Builder
@@ -51,5 +56,7 @@ public class User {
     }
 
     @PreUpdate
-    void onUpdate() { updatedAt = Instant.now(); }
+    void onUpdate() {
+        updatedAt = Instant.now();
+    }
 }

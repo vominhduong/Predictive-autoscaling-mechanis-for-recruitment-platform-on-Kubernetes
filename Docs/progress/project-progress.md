@@ -279,3 +279,28 @@ Manual result with Auth Service on port 8081 and Gateway on port 8080:
 ## Next task
 
 - Prompt 12 — CI/CD, Kubernetes and Release, only when explicitly requested.
+
+## Frontend UX optimization — 2026-10-01
+
+- Audited existing implementation before edits; see `Docs/ux-audit.md` and the full Vietnamese report `Docs/ux-report.md`.
+- Added distinct Candidate/Employer navigation, accessible mobile drawers, real onboarding checklist data, safe login/register return paths and account-scoped Company navigation storage.
+- Connected search/filter/detail/CV/apply journeys; Company names come from the existing public endpoint. Duplicate checks and private Job lookup now traverse actual pagination.
+- Improved CV feedback/retry/confirmation, application success, Vietnamese status actions, Company onboarding, Job form sections/validation/data preservation and recoverable version conflicts.
+- Added shared focus trap/return/inert behavior, field error associations, responsive styles and bounded dialogs. No backend/contract/infrastructure changes, no commit/push.
+- Baseline: lint/typecheck/build passed; 39 tests across 8 files passed. After implementation: lint/typecheck/build passed; 69 tests across 9 files passed; browser suite 18 passed and 8 intentionally skipped by project/environment. Browser tests exercise 375/768/1024/1440px and mocked Candidate/Employer critical journeys.
+- Real API Gateway verification remains unavailable: localhost:8080 did not accept connections. No claim of live end-to-end completion. Existing live test was updated for the new UI; no backend or infrastructure was started.
+- Contract limitations remain: no public Company-list/membership-role catalog, no location/category catalog, no Employer CV download, no Company-wide Application/status filter endpoint. Known-owner controls cannot be recovered on a fresh browser using the current public APIs. Observed reference suggestions are explicitly partial.
+- Build retains the existing non-failing large-chunk and Zod annotation advisories. Full WCAG/device/screen-reader audit remains outside the verification performed here.
+
+## Job Category và Job Location — 2026-10-02
+
+- Đã bổ sung Flyway `V2__seed_job_categories_and_locations.sql`: 15 ngành nghề IT, 10 địa điểm, UUID/timestamps cố định và `ON CONFLICT (slug) DO NOTHING`. Không chỉnh V1 trong nhiệm vụ này (V1 đã modified từ baseline).
+- Hai API public `GET /api/v1/jobs/metadata/categories` và `/locations` chỉ trả active, name ASC, DTO `{id,name,slug}` trong success envelope. Dùng route/security Gateway hiện có; không public internal.
+- Frontend thêm API methods/types và `useJobMetadata`, cache 30 phút. SearchBar, FilterSidebar, JobForm và trang tìm việc cũ dùng dropdown, có loading/empty/error/retry; không nhập UUID thủ công. URL giữ filter; chip dùng tên; edit/inactive được kiểm tra trước submit.
+- Job Card/Detail tiếp tục dùng summary names. JobService dùng bulk lookup, test xác nhận 4 SQL statements cho một trang có nhiều reference khác nhau, ở cả public/employer list.
+- Baseline: Job 12 tests; frontend 69 tests và lint/typecheck/build pass. Sau thay đổi: Job clean verify 16 tests; Gateway clean verify 14 tests; frontend 85 tests và lint/typecheck/build pass.
+- Compose đã build/chạy Job, Gateway, Frontend cùng dependencies. PostgreSQL `job_db` xác nhận V2 success, 15/10 bản ghi active, không trùng slug. HTTP qua Gateway trả 15/10 options.
+- Live browser metadata flow pass trên desktop Chromium và Pixel 7 emulation: trang chủ, tạo/edit Job bằng dropdown, từng filter/kết hợp/reload, chip, Card/Detail, mobile drawer, request cache và không có console/page errors. Đây là kiểm chứng tự động trên môi trường thật, không phải manual kiểm tra thiết bị vật lý.
+- Giới hạn cũ “không có public Category/Location catalog, dùng UUID quản trị viên” trong các mục lịch sử ở trên đã được giải quyết. Company-list và các hạn chế khác vẫn ngoài phạm vi.
+- Báo cáo/file inventory/giới hạn chi tiết: `Docs/job-metadata-report.md`; trạng thái Git cuối: `Docs/progress/job-metadata-git-status.txt`. Không commit/push, không sửa Grafana datasource `prometheus.yml`.
+- Browser regression đã hoàn tất: tổng 21 scenarios pass sau các lần chạy/sửa test, 7 skip theo project. Lần full-suite đầu có 19 pass/2 fail; mock metadata Employer và các selector/chờ upload trong test live cũ đã được sửa, nhóm UX 5 pass và live Candidate/Employer 1 pass khi chạy lại. Không thay đổi chức năng CV.

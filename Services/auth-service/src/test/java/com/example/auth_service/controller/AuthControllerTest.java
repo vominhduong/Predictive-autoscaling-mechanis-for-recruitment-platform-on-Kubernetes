@@ -31,7 +31,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AuthControllerTest {
     private static final String ENDPOINT = "/api/v1/auth/register";
 
-    @Mock private AuthService authService;
+    @Mock
+    private AuthService authService;
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -65,28 +66,43 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.data.expiresIn").value(1800));
     }
 
-    @Test void rejectsBlankEmail() throws Exception {
+    @Test
+    void rejectsBlankEmail() throws Exception {
         assertValidationError("", "StrongPass@123", "CANDIDATE", "email");
     }
-    @Test void rejectsMalformedEmail() throws Exception {
+
+    @Test
+    void rejectsMalformedEmail() throws Exception {
         assertValidationError("not-an-email", "StrongPass@123", "CANDIDATE", "email");
     }
-    @Test void rejectsShortPassword() throws Exception {
+
+    @Test
+    void rejectsShortPassword() throws Exception {
         assertValidationError("candidate@example.com", "Aa1@", "CANDIDATE", "password");
     }
-    @Test void rejectsPasswordWithoutUppercase() throws Exception {
+
+    @Test
+    void rejectsPasswordWithoutUppercase() throws Exception {
         assertValidationError("candidate@example.com", "strongpass@123", "CANDIDATE", "password");
     }
-    @Test void rejectsPasswordWithoutLowercase() throws Exception {
+
+    @Test
+    void rejectsPasswordWithoutLowercase() throws Exception {
         assertValidationError("candidate@example.com", "STRONGPASS@123", "CANDIDATE", "password");
     }
-    @Test void rejectsPasswordWithoutDigit() throws Exception {
+
+    @Test
+    void rejectsPasswordWithoutDigit() throws Exception {
         assertValidationError("candidate@example.com", "StrongPass@abc", "CANDIDATE", "password");
     }
-    @Test void rejectsPasswordWithoutSpecialCharacter() throws Exception {
+
+    @Test
+    void rejectsPasswordWithoutSpecialCharacter() throws Exception {
         assertValidationError("candidate@example.com", "StrongPass123", "CANDIDATE", "password");
     }
-    @Test void rejectsNullRole() throws Exception {
+
+    @Test
+    void rejectsNullRole() throws Exception {
         assertValidationError("candidate@example.com", "StrongPass@123", null, "role");
     }
 

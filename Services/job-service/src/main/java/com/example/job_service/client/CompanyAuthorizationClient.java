@@ -56,6 +56,13 @@ public class CompanyAuthorizationClient {
         return new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "UPSTREAM_SERVICE_UNAVAILABLE", message);
     }
 
-    public static class Envelope { public boolean success; public Authorization data; }
-    public static class Authorization { public boolean canManage; public String memberRole; }
+    public static class Envelope {
+        public boolean success;
+        public Authorization data;
+    }
+
+    public static class Authorization {
+        public boolean canManage;
+        public String memberRole;
+    }
 }
