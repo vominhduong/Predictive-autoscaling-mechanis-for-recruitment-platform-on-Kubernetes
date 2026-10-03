@@ -20,6 +20,7 @@ class CvServiceCompensationTest {
         when(repo.saveAndFlush(any())).thenThrow(new RuntimeException("db down"));
         AtomicReference<String> up = new AtomicReference<>(), del = new AtomicReference<>();
         ObjectStorage storage = new ObjectStorage() {
+            public StoredFile get(String k) { throw new UnsupportedOperationException(); }
             public void put(String k, InputStream d, long s, String t) {
                 up.set(k);
             }

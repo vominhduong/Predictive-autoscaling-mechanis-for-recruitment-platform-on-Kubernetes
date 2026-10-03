@@ -46,6 +46,18 @@ public class MinioObjectStorage implements ObjectStorage {
         }
     }
 
+    public StoredFile get(String key) {
+        try (var response = client.getObject(GetObjectArgs.builder().bucket(bucket).object(key).build())) {
+            return new StoredFile(response.readAllBytes(), response.headers().get("Content-Type"));
+        } catch (io.minio.errors.ErrorResponseException e) {
+            if ("NoSuchKey".equals(e.errorResponse().code()) || "NoSuchObject".equals(e.errorResponse().code()))
+                throw new ApiException(HttpStatus.NOT_FOUND, "CV_FILE_NOT_FOUND", "The CV file no longer exists");
+            throw unavailable();
+        } catch (Exception e) {
+            throw unavailable();
+        }
+    }
+
     private ApiException unavailable() {
         return new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "DEPENDENCY_UNAVAILABLE", "Object storage is unavailable");
     }

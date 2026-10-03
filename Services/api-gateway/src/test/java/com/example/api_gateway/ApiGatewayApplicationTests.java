@@ -155,6 +155,17 @@ class ApiGatewayApplicationTests {
     }
 
     @Test
+    void cvCannotBeAccessedAnonymouslyOrThroughInternalObjectKey() throws Exception {
+        client().get().uri("/api/v1/applications/" + UUID.randomUUID() + "/cv")
+                .header("X-User-Role", "EMPLOYER").header("X-User-Id", UUID.randomUUID().toString())
+                .exchange().expectStatus().isUnauthorized();
+        client().get().uri("/internal/cv-file?objectKey=cvs/private.pdf")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token(
+                        UUID.randomUUID(), Instant.now(), Duration.ofMinutes(30)))
+                .exchange().expectStatus().isNotFound();
+    }
+
+    @Test
     void validCorrelationIdIsForwardedAndReturned() {
         client().get().uri("/api/v1/jobs").header("X-Correlation-ID", "request-123")
                 .exchange().expectStatus().isOk()

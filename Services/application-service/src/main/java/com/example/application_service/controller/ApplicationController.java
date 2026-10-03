@@ -44,6 +44,13 @@ public class ApplicationController {
         return ApiResponse.ok("Application status updated", applications.changeStatus(id, body, identity.userId(), trace(request)));
     }
 
+    @GetMapping("/{id}/cv")
+    public ResponseEntity<byte[]> cv(@PathVariable UUID id, @RequestParam(defaultValue = "false") boolean download,
+                                     RequestIdentity identity, HttpServletRequest request) {
+        role(identity, "EMPLOYER");
+        return applications.cvFile(id, identity.userId(), trace(request), download);
+    }
+
     private void role(RequestIdentity i, String r) {
         if (!r.equals(i.role())) throw new ApiException(HttpStatus.FORBIDDEN, "ACCESS_DENIED", r + " role is required");
     }

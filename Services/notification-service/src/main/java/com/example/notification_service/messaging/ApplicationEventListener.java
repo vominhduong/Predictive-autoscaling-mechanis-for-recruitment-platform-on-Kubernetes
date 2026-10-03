@@ -39,6 +39,13 @@ public class ApplicationEventListener {
             dlq.increment();
             log.warn("notification_permanent_failure eventId={} applicationId={}", event.eventId(), event.data() == null ? null : event.data().applicationId());
             throw new AmqpRejectAndDontRequeueException("Permanent notification failure", e);
+        } catch (RuntimeException e) {
+            if (!"APPLICATION_SUBMITTED".equals(event.eventType())) throw e;
+            // A database failure after Brevo accepted the request has an unknown delivery outcome.
+            // Acknowledge this submission event to prevent an automatic duplicate send.
+            dlq.increment();
+            log.warn("notification_receipt_outcome_unknown eventId={} applicationId={} errorType={}",
+                    event.eventId(), event.data().applicationId(), e.getClass().getSimpleName());
         }
     }
 }

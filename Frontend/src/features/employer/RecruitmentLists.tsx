@@ -8,6 +8,7 @@ import {Empty, ErrorState, Field, Page, Pager, Status, statusLabels} from '../..
 import {applicationTransitions, isUuid} from '../../utils/validation';
 import type {Application, ApplicationStatus, Job, JobStatus} from '../../types/api';
 import {remember} from '../company/registry';
+import {ApplicationCv} from './ApplicationCv';
 
 const transitions: Record<JobStatus, JobStatus[]> = {
     DRAFT: ['PUBLISHED', 'CLOSED'],
@@ -167,6 +168,7 @@ export function EmployerApplicationsPage() {
                     <div><Status value={application.status}/><h2>{application.candidateIdentity}</h2>
                         <p>{application.jobTitle}</p>
                         <p>{application.cvFileName} · {new Date(application.createdAt).toLocaleDateString('vi-VN')}</p>
+                        <ApplicationCv id={application.id} fileName={application.cvFileName}/>
                         <Link to={'/employer/applications/' + application.id}>Xem chi tiết hồ sơ</Link></div>
                     <div className="actions">{applicationTransitions[application.status].map(status => <button
                         className={status === 'REJECTED' ? 'button button-danger' : 'button'} key={status}

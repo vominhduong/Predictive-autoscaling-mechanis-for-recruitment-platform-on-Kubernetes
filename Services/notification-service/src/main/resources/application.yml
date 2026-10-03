@@ -45,6 +45,17 @@ logging:
   pattern:
     level: "%5p [${spring.application.name:},%X{correlationId:-}]"
 notification:
+  brevo:
+    api-key: ${BREVO_API_KEY:}
+    sender-email: ${BREVO_SENDER_EMAIL:}
+    sender-name: ${BREVO_SENDER_NAME:Recruitment Platform}
+    url: ${BREVO_API_URL:https://api.brevo.com/v3/smtp/email}
+    connect-timeout: ${BREVO_CONNECT_TIMEOUT:2s}
+    read-timeout: ${BREVO_READ_TIMEOUT:5s}
+  user-service-url: ${USER_SERVICE_URI:http://localhost:8082}
+  internal-token: ${INTERNAL_API_TOKEN:}
+  user-service-connect-timeout: ${INTERNAL_CONNECT_TIMEOUT:2s}
+  user-service-read-timeout: ${INTERNAL_READ_TIMEOUT:3s}
   mail:
     from: ${NOTIFICATION_FROM:no-reply@recruitment.local}
   messaging:

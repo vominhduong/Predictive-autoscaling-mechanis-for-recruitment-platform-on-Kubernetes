@@ -1,6 +1,8 @@
 package com.example.notification_service;
 
 import com.example.notification_service.entity.NotificationStatus;
+import com.example.notification_service.client.BrevoEmailSender;
+import com.example.notification_service.client.UserNotificationContextClient;
 import com.example.notification_service.repository.*;
 import org.junit.jupiter.api.*;
 import org.springframework.amqp.core.*;
@@ -46,6 +48,10 @@ class NotificationServiceApplicationTests {
     JsonMapper json;
     @MockitoBean
     JavaMailSender mail;
+    @MockitoBean
+    BrevoEmailSender brevo;
+    @MockitoBean
+    UserNotificationContextClient context;
 
     @DynamicPropertySource
     static void props(DynamicPropertyRegistry r) {
@@ -70,6 +76,9 @@ class NotificationServiceApplicationTests {
         processed.deleteAll();
         notifications.deleteAll();
         reset(mail);
+        reset(brevo, context);
+        when(context.get(any(), any())).thenReturn(
+                new UserNotificationContextClient.NotificationContext("Nguyễn An", "Công ty Sao Việt"));
     }
 
     @Test
@@ -90,7 +99,11 @@ class NotificationServiceApplicationTests {
         send(event, "APPLICATION_SUBMITTED", 1, "candidate@example.com", null, "APPLIED");
         await(() -> messageCount(QUEUE) == 0);
         assertThat(notifications.findByEventId(event)).get().extracting("status").isEqualTo(NotificationStatus.SENT);
-        verify(mail, times(1)).send(any(org.springframework.mail.SimpleMailMessage.class));
+        assertThat(notifications.findByEventId(event)).get().extracting("subject").asString().contains("Engineer");
+        verify(brevo, times(1)).send(eq("candidate@example.com"), eq("Nguyễn An"),
+                contains("Engineer"), argThat((String body) -> body.contains("Nguyễn An")
+                        && body.contains("Công ty Sao Việt")));
+        verifyNoInteractions(mail);
     }
 
     @Test
@@ -112,10 +125,37 @@ class NotificationServiceApplicationTests {
             return null;
         }).when(mail).send(any(org.springframework.mail.SimpleMailMessage.class));
         UUID event = UUID.randomUUID();
-        send(event, "APPLICATION_SUBMITTED", 1, "candidate@example.com", null, "APPLIED");
+        send(event, "APPLICATION_STATUS_CHANGED", 1, "candidate@example.com", "APPLIED", "SCREENING");
         await(() -> processed.existsById(event));
         assertThat(attempts).hasValue(3);
         assertThat(notifications.count()).isEqualTo(1);
+    }
+
+    @Test
+    @Order(6)
+    void brevoFailureIsRecordedWithoutRetryOrAffectingTheApplicationEvent() throws Exception {
+        doThrow(new org.springframework.web.client.ResourceAccessException("timeout"))
+                .when(brevo).send(any(), any(), any(), any());
+        UUID event = UUID.randomUUID();
+        send(event, "APPLICATION_SUBMITTED", 1, "candidate@example.com", null, "APPLIED");
+        await(() -> processed.existsById(event));
+        assertThat(notifications.findByEventId(event)).get().extracting("status").isEqualTo(NotificationStatus.FAILED);
+        assertThat(notifications.findByEventId(event)).get().extracting("attemptCount").isEqualTo(1);
+        verify(brevo, times(1)).send(any(), any(), any(), any());
+        verifyNoInteractions(mail);
+        assertThat(messageCount(DLQ)).isZero();
+    }
+
+    @Test
+    @Order(7)
+    void missingOptionalProfileNameUsesTheVerifiedAccountEmail() throws Exception {
+        when(context.get(any(), any())).thenReturn(
+                new UserNotificationContextClient.NotificationContext(null, "Công ty Sao Việt"));
+        UUID event = UUID.randomUUID();
+        send(event, "APPLICATION_SUBMITTED", 1, "candidate@example.com", null, "APPLIED");
+        await(() -> processed.existsById(event));
+        verify(brevo).send(eq("candidate@example.com"), eq("candidate@example.com"), any(),
+                argThat((String body) -> body.contains("Xin chào candidate@example.com")));
     }
 
     @Test

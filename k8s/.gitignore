@@ -1,0 +1,4 @@
+/secret.yaml
+/.env
+/k8s/secret.yaml
+/infrastructure/k8s/.generated/

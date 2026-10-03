@@ -55,6 +55,18 @@ public class Notification {
         lastError = null;
     }
 
+    public void subject(String value) {
+        subject = value;
+        updatedAt = Instant.now();
+    }
+
+    public void failed(String reason) {
+        attemptCount++;
+        status = NotificationStatus.FAILED;
+        updatedAt = Instant.now();
+        lastError = reason;
+    }
+
     public UUID getId() {
         return id;
     }

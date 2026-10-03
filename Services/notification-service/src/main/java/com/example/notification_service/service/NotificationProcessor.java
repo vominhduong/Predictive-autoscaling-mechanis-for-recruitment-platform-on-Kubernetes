@@ -1,5 +1,7 @@
 package com.example.notification_service.service;
 
+import com.example.notification_service.client.BrevoEmailSender;
+import com.example.notification_service.client.UserNotificationContextClient;
 import com.example.notification_service.entity.*;
 import com.example.notification_service.event.ApplicationEvent;
 import com.example.notification_service.repository.*;
@@ -19,14 +21,20 @@ public class NotificationProcessor {
     private final ProcessedEventRepository processed;
     private final EmailTemplateService templates;
     private final JavaMailSender mail;
+    private final BrevoEmailSender brevo;
+    private final UserNotificationContextClient context;
     private final String from;
     private final Counter consumed, sent, duplicates, failed, retries;
 
-    public NotificationProcessor(NotificationRepository n, ProcessedEventRepository p, EmailTemplateService t, JavaMailSender m, @Value("${notification.mail.from}") String from, MeterRegistry meter) {
+    public NotificationProcessor(NotificationRepository n, ProcessedEventRepository p, EmailTemplateService t,
+                                 JavaMailSender m, BrevoEmailSender brevo, UserNotificationContextClient context,
+                                 @Value("${notification.mail.from}") String from, MeterRegistry meter) {
         notifications = n;
         processed = p;
         templates = t;
         mail = m;
+        this.brevo = brevo;
+        this.context = context;
         this.from = from;
         consumed = meter.counter("notification.events.consumed");
         sent = meter.counter("notification.email.sent");
@@ -44,6 +52,10 @@ public class NotificationProcessor {
             return;
         }
         validate(event);
+        if ("APPLICATION_SUBMITTED".equals(event.eventType())) {
+            processSubmitted(event);
+            return;
+        }
         var rendered = templates.render(event);
         Notification record = notifications.findByEventId(event.eventId()).orElseGet(() -> notifications.save(new Notification(event.eventId(), event.data().candidateEmail(), rendered.templateCode(), rendered.subject())));
         try {
@@ -62,6 +74,36 @@ public class NotificationProcessor {
             retries.increment();
             throw e;
         }
+    }
+
+    private void processSubmitted(ApplicationEvent event) {
+        var record = notifications.findByEventId(event.eventId()).orElseGet(() -> notifications.save(
+                new Notification(event.eventId(), event.data().candidateEmail(),
+                        "APPLICATION_SUBMITTED", "Xác nhận đã nhận hồ sơ ứng tuyển")));
+        if (record.getStatus() == NotificationStatus.SENT || record.getStatus() == NotificationStatus.FAILED) {
+            processed.save(new ProcessedEvent(event.eventId(), event.eventType()));
+            duplicates.increment();
+            return;
+        }
+        try {
+            var names = context.get(event.data().candidateId(), event.data().companyId());
+            String candidateName = names.candidateName() == null || names.candidateName().isBlank()
+                    ? event.data().candidateEmail() : names.candidateName();
+            var rendered = templates.renderSubmitted(event, candidateName, names.companyName());
+            record.subject(rendered.subject());
+            brevo.send(event.data().candidateEmail(), candidateName, rendered.subject(), rendered.body());
+            record.sent();
+            sent.increment();
+            log.info("notification_sent eventId={} applicationId={} traceId={}",
+                    event.eventId(), event.data().applicationId(), event.data().correlationId());
+        } catch (RuntimeException e) {
+            record.failed(e.getClass().getSimpleName());
+            failed.increment();
+            // An HTTP timeout has an unknown outcome. Do not resend this event automatically.
+            log.warn("notification_delivery_failed eventId={} applicationId={} errorType={}",
+                    event.eventId(), event.data().applicationId(), e.getClass().getSimpleName());
+        }
+        processed.save(new ProcessedEvent(event.eventId(), event.eventType()));
     }
 
     private void validate(ApplicationEvent e) {

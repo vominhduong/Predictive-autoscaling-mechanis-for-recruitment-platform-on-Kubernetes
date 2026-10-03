@@ -12,10 +12,12 @@ import java.util.UUID;
 public class InternalController {
     private final CvService cvs;
     private final CompanyService companies;
+    private final ProfileService profiles;
 
-    public InternalController(CvService c, CompanyService co) {
+    public InternalController(CvService c, CompanyService co, ProfileService p) {
         cvs = c;
         companies = co;
+        profiles = p;
     }
 
     @GetMapping("/cvs/{cvId}/validation")
@@ -26,5 +28,15 @@ public class InternalController {
     @GetMapping("/companies/{companyId}/authorization")
     public ApiResponse<CompanyDtos.Authorization> company(@PathVariable UUID companyId, @RequestParam UUID userId) {
         return ApiResponse.ok("Company authorization completed", companies.authorization(companyId, userId));
+    }
+
+    @GetMapping("/notification-context")
+    public ApiResponse<NotificationContext> notificationContext(@RequestParam UUID candidateId,
+                                                                 @RequestParam UUID companyId) {
+        return ApiResponse.ok("Notification context retrieved", new NotificationContext(
+                profiles.notificationName(candidateId), companies.get(companyId).name()));
+    }
+
+    public record NotificationContext(String candidateName, String companyName) {
     }
 }

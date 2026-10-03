@@ -20,3 +20,11 @@ Frontend/*.tsbuildinfo
 # Operating system files
 .DS_Store
 Thumbs.db
+
+.env
+k8s/secret.yaml
+infrastructure/k8s/.generated/
+
+.env.ecample.env
+.env.ecample.env
+infrastructure/k8s/.generated/

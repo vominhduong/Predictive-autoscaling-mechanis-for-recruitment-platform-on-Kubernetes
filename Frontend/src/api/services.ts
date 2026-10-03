@@ -104,6 +104,9 @@ export const jobApi = {
     }))
 };
 export const applicationApi = {
+    cv: (id: string, download: boolean, signal?: AbortSignal) => api.get<Blob>(`/api/v1/applications/${id}/cv`, {
+        params: {download}, responseType: 'blob', headers: {Accept: '*/*'}, timeout: 30000, signal
+    }),
     apply: (jobId: string, cvId: string, coverLetter?: string) => data<Application>(api.post('/api/v1/applications', {
         jobId,
         cvId,

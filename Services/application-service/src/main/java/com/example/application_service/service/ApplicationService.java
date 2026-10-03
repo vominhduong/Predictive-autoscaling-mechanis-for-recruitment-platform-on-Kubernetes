@@ -7,7 +7,8 @@ import com.example.application_service.exception.ApiException;
 import com.example.application_service.repository.*;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.*;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.*;
+import java.nio.charset.StandardCharsets;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
@@ -105,6 +106,35 @@ public class ApplicationService {
 
     private JobApplication find(UUID id) {
         return applications.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "APPLICATION_NOT_FOUND", "Application was not found"));
+    }
+
+    public ResponseEntity<byte[]> cvFile(UUID id, UUID employer, String trace, boolean download) {
+        JobApplication app = find(id);
+        // Use current job ownership, then read only the immutable key stored on this application.
+        var job = internal.job(app.getJobId(), trace);
+        if (job == null) throw new ApiException(HttpStatus.NOT_FOUND, "JOB_NOT_FOUND", "Job was not found");
+        internal.requireCompany(job.companyId, employer, trace);
+        String key = app.getCvObjectKeySnapshot();
+        if (key == null || key.isBlank())
+            throw new ApiException(HttpStatus.NOT_FOUND, "CV_NOT_FOUND", "No CV is attached to this application");
+        var file = internal.cvFile(key, trace);
+        byte[] bytes = file.getBody();
+        if (bytes == null || bytes.length == 0)
+            throw new ApiException(HttpStatus.NOT_FOUND, "CV_FILE_NOT_FOUND", "The CV file is empty or missing");
+        String name = app.getCvFileNameSnapshot();
+        name = name == null ? "cv" : name.replace('\\', '/');
+        name = name.substring(name.lastIndexOf('/') + 1).replaceAll("[\\p{Cntrl}\\\";]", "_");
+        if (name.isBlank()) name = "cv";
+        MediaType type = file.getHeaders().getContentType();
+        boolean pdf = MediaType.APPLICATION_PDF.equals(type) && bytes.length >= 5
+                && new String(bytes, 0, 5, StandardCharsets.US_ASCII).equals("%PDF-");
+        if (!pdf && MediaType.APPLICATION_PDF.equals(type)) type = MediaType.APPLICATION_OCTET_STREAM;
+        if (type == null) type = MediaType.APPLICATION_OCTET_STREAM;
+        String disposition = ContentDisposition.builder(!download && pdf ? "inline" : "attachment")
+                .filename(name, StandardCharsets.UTF_8).build().toString();
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).contentType(type)
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition).header("X-Content-Type-Options", "nosniff")
+                .contentLength(bytes.length).body(bytes);
     }
 
     private ApiException duplicate() {

@@ -56,6 +56,17 @@ public class InternalServiceClient {
         }
     }
 
+    public ResponseEntity<byte[]> cvFile(String objectKey, String trace) {
+        try {
+            return call(userCircuit, () -> users.get()
+                    .uri(u -> u.path("/internal/cv-file").queryParam("objectKey", "{key}").build(objectKey))
+                    .header("X-Internal-Token", token).header("X-Correlation-ID", trace)
+                    .retrieve().toEntity(byte[].class));
+        } catch (HttpClientErrorException.NotFound e) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "CV_FILE_NOT_FOUND", "The CV file no longer exists");
+        }
+    }
+
     private <T> T call(Circuit circuit, Supplier<T> request) {
         if (circuit.open()) throw unavailable("Dependency circuit is open");
         for (int attempt = 0; attempt < 2; attempt++) {

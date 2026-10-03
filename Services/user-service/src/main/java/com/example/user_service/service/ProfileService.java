@@ -28,6 +28,11 @@ public class ProfileService {
         return view(repo.save(p));
     }
 
+    @Transactional(readOnly = true)
+    public String notificationName(UUID userId) {
+        return repo.findByUserId(userId).map(CandidateProfile::getFullName).orElse(null);
+    }
+
     private ProfileDtos.View view(CandidateProfile p) {
         return new ProfileDtos.View(p.getId(), p.getUserId(), p.getFullName(), p.getPhone(), p.getHeadline(), p.getSummary(), p.getLocationId(), p.getCreatedAt(), p.getUpdatedAt(), p.getVersion());
     }

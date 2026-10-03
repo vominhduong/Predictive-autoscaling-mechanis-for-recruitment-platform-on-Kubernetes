@@ -31,7 +31,8 @@ public class OutboxService {
     private void save(JobApplication a, String type, String oldStatus, String newStatus, String trace) {
         UUID id = UUID.randomUUID();
         var data = new ApplicationEvent.Data(a.getId(), a.getJobId(), a.getCompanyId(), a.getCandidateId(), a.getCandidateIdentitySnapshot(), a.getJobTitleSnapshot(), oldStatus, newStatus, trace);
-        var event = new ApplicationEvent(id, type, VERSION, Instant.now(), "application-service", data);
+        var occurredAt = "APPLICATION_SUBMITTED".equals(type) ? a.getCreatedAt() : Instant.now();
+        var event = new ApplicationEvent(id, type, VERSION, occurredAt, "application-service", data);
         outbox.save(new OutboxEvent(id, a.getId(), type, VERSION, json.writeValueAsString(event)));
     }
 }

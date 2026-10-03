@@ -1,0 +1,2135 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "postgres-init",
+        "namespace": "recruitment"
+      },
+      "data": {
+        "01-init.sql": "\\set ON_ERROR_STOP on\nSELECT 'CREATE DATABASE auth_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'auth_db')\\gexec\nSELECT 'CREATE DATABASE user_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'user_db')\\gexec\nSELECT 'CREATE DATABASE job_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'job_db')\\gexec\nSELECT 'CREATE DATABASE application_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'application_db')\\gexec\nSELECT 'CREATE DATABASE notification_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'notification_db')\\gexec"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "frontend-nginx",
+        "namespace": "recruitment"
+      },
+      "data": {
+        "default.conf": "server {\n    listen 8080;\n    client_max_body_size 10m;\n    server_name _;\n    root /usr/share/nginx/html;\n    index index.html;\n\n    add_header X-Content-Type-Options \"nosniff\" always;\n    add_header X-Frame-Options \"DENY\" always;\n    add_header Referrer-Policy \"strict-origin-when-cross-origin\" always;\n    add_header Permissions-Policy \"camera=(), microphone=(), geolocation=()\" always;\n    add_header Content-Security-Policy \"default-src 'self'; frame-src 'self' blob:; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'\" always;\n\n    location = /healthz {\n        access_log off;\n        default_type text/plain;\n        return 200 'ok';\n    }\n\n    location /api/ {\n        proxy_pass http://api-gateway:8080;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n    }\n\n    location /assets/ {\n        try_files $uri =404;\n        expires 1y;\n        add_header Cache-Control \"public, immutable\";\n    }\n\n    location / {\n        try_files $uri $uri/ /index.html;\n        add_header Cache-Control \"no-cache\";\n    }\n}\n"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "name": "postgres-data",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "storageClassName": "recruitment-local",
+        "resources": {
+          "requests": {
+            "storage": "5Gi"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "name": "rabbitmq-data",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "storageClassName": "recruitment-local",
+        "resources": {
+          "requests": {
+            "storage": "2Gi"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "name": "minio-data",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "storageClassName": "recruitment-local",
+        "resources": {
+          "requests": {
+            "storage": "5Gi"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "postgres",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "selector": {
+          "app": "postgres"
+        },
+        "ports": [
+          {
+            "name": "p5432",
+            "port": 5432,
+            "targetPort": 5432
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "StatefulSet",
+      "metadata": {
+        "name": "postgres",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "postgres"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "postgres"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "name": "postgres",
+                "image": "postgres:17.6-alpine",
+                "imagePullPolicy": "IfNotPresent",
+                "ports": [
+                  {
+                    "containerPort": 5432
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "128Mi"
+                  },
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "1Gi"
+                  }
+                },
+                "envFrom": [
+                  {
+                    "secretRef": {
+                      "name": "postgres-env"
+                    }
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "PGDATA",
+                    "value": "/var/lib/postgresql/data/pgdata"
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "data",
+                    "mountPath": "/var/lib/postgresql/data"
+                  },
+                  {
+                    "name": "init",
+                    "mountPath": "/docker-entrypoint-initdb.d",
+                    "readOnly": true
+                  }
+                ],
+                "readinessProbe": {
+                  "exec": {
+                    "command": [
+                      "sh",
+                      "-c",
+                      "pg_isready -h 127.0.0.1 -U \"$POSTGRES_USER\" -d postgres"
+                    ]
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 5
+                },
+                "livenessProbe": {
+                  "exec": {
+                    "command": [
+                      "sh",
+                      "-c",
+                      "pg_isready -h 127.0.0.1 -U \"$POSTGRES_USER\" -d postgres"
+                    ]
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 5
+                },
+                "startupProbe": {
+                  "exec": {
+                    "command": [
+                      "sh",
+                      "-c",
+                      "pg_isready -h 127.0.0.1 -U \"$POSTGRES_USER\" -d postgres"
+                    ]
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 5,
+                  "failureThreshold": 60
+                }
+              }
+            ],
+            "terminationGracePeriodSeconds": 40,
+            "volumes": [
+              {
+                "name": "data",
+                "persistentVolumeClaim": {
+                  "claimName": "postgres-data"
+                }
+              },
+              {
+                "name": "init",
+                "configMap": {
+                  "name": "postgres-init"
+                }
+              }
+            ]
+          }
+        },
+        "serviceName": "postgres"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "rabbitmq",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "selector": {
+          "app": "rabbitmq"
+        },
+        "ports": [
+          {
+            "name": "p5672",
+            "port": 5672,
+            "targetPort": 5672
+          },
+          {
+            "name": "p15672",
+            "port": 15672,
+            "targetPort": 15672
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "StatefulSet",
+      "metadata": {
+        "name": "rabbitmq",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "rabbitmq"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "rabbitmq"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "name": "rabbitmq",
+                "image": "rabbitmq:4.1.3-management-alpine",
+                "imagePullPolicy": "IfNotPresent",
+                "ports": [
+                  {
+                    "containerPort": 5672
+                  },
+                  {
+                    "containerPort": 15672
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "128Mi"
+                  },
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "1Gi"
+                  }
+                },
+                "envFrom": [
+                  {
+                    "secretRef": {
+                      "name": "rabbitmq-env"
+                    }
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "RABBITMQ_NODENAME",
+                    "value": "rabbit@rabbitmq-0"
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "data",
+                    "mountPath": "/var/lib/rabbitmq"
+                  }
+                ],
+                "readinessProbe": {
+                  "exec": {
+                    "command": [
+                      "rabbitmq-diagnostics",
+                      "-q",
+                      "ping"
+                    ]
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 5
+                },
+                "livenessProbe": {
+                  "exec": {
+                    "command": [
+                      "rabbitmq-diagnostics",
+                      "-q",
+                      "ping"
+                    ]
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 5
+                },
+                "startupProbe": {
+                  "exec": {
+                    "command": [
+                      "rabbitmq-diagnostics",
+                      "-q",
+                      "ping"
+                    ]
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 5,
+                  "failureThreshold": 60
+                }
+              }
+            ],
+            "terminationGracePeriodSeconds": 40,
+            "volumes": [
+              {
+                "name": "data",
+                "persistentVolumeClaim": {
+                  "claimName": "rabbitmq-data"
+                }
+              }
+            ]
+          }
+        },
+        "serviceName": "rabbitmq"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "minio",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "selector": {
+          "app": "minio"
+        },
+        "ports": [
+          {
+            "name": "p9000",
+            "port": 9000,
+            "targetPort": 9000
+          },
+          {
+            "name": "p9001",
+            "port": 9001,
+            "targetPort": 9001
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "StatefulSet",
+      "metadata": {
+        "name": "minio",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "minio"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "minio"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "name": "minio",
+                "image": "quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z",
+                "imagePullPolicy": "IfNotPresent",
+                "ports": [
+                  {
+                    "containerPort": 9000
+                  },
+                  {
+                    "containerPort": 9001
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "128Mi"
+                  },
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "1Gi"
+                  }
+                },
+                "envFrom": [
+                  {
+                    "secretRef": {
+                      "name": "minio-env"
+                    }
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "data",
+                    "mountPath": "/data"
+                  }
+                ],
+                "args": [
+                  "server",
+                  "/data",
+                  "--console-address",
+                  ":9001"
+                ],
+                "readinessProbe": {
+                  "httpGet": {
+                    "port": 9000,
+                    "path": "/minio/health/ready"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3
+                },
+                "livenessProbe": {
+                  "httpGet": {
+                    "port": 9000,
+                    "path": "/minio/health/live"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3
+                },
+                "startupProbe": {
+                  "httpGet": {
+                    "port": 9000,
+                    "path": "/minio/health/ready"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3,
+                  "failureThreshold": 60
+                }
+              }
+            ],
+            "terminationGracePeriodSeconds": 40,
+            "volumes": [
+              {
+                "name": "data",
+                "persistentVolumeClaim": {
+                  "claimName": "minio-data"
+                }
+              }
+            ]
+          }
+        },
+        "serviceName": "minio"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "mailpit",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "selector": {
+          "app": "mailpit"
+        },
+        "ports": [
+          {
+            "name": "p1025",
+            "port": 1025,
+            "targetPort": 1025
+          },
+          {
+            "name": "p8025",
+            "port": 8025,
+            "targetPort": 8025
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "mailpit",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "mailpit"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "mailpit"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "name": "mailpit",
+                "image": "axllent/mailpit:v1.27.8",
+                "imagePullPolicy": "IfNotPresent",
+                "ports": [
+                  {
+                    "containerPort": 1025
+                  },
+                  {
+                    "containerPort": 8025
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "128Mi"
+                  },
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "512Mi"
+                  }
+                },
+                "readinessProbe": {
+                  "httpGet": {
+                    "port": 8025,
+                    "path": "/readyz"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3
+                }
+              }
+            ],
+            "terminationGracePeriodSeconds": 40
+          }
+        },
+        "strategy": {
+          "type": "RollingUpdate",
+          "rollingUpdate": {
+            "maxSurge": 1,
+            "maxUnavailable": 0
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "batch/v1",
+      "kind": "Job",
+      "metadata": {
+        "name": "minio-init",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "backoffLimit": 6,
+        "activeDeadlineSeconds": 300,
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "minio-init"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "restartPolicy": "OnFailure",
+            "containers": [
+              {
+                "name": "init",
+                "image": "quay.io/minio/mc:RELEASE.2025-04-16T18-13-26Z",
+                "envFrom": [
+                  {
+                    "secretRef": {
+                      "name": "minio-init-env"
+                    }
+                  }
+                ],
+                "command": [
+                  "/bin/sh",
+                  "-ec",
+                  "mc alias set local http://minio:9000 \"$MINIO_ROOT_USER\" \"$MINIO_ROOT_PASSWORD\"; mc mb --ignore-existing \"local/$MINIO_CV_BUCKET\"; mc anonymous set none \"local/$MINIO_CV_BUCKET\""
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "auth-service",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "selector": {
+          "app": "auth-service"
+        },
+        "ports": [
+          {
+            "name": "p8081",
+            "port": 8081,
+            "targetPort": 8081
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "auth-service",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "auth-service"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "auth-service"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "name": "auth-service",
+                "image": "vmduong2005/auth-service:latest",
+                "imagePullPolicy": "Always",
+                "ports": [
+                  {
+                    "containerPort": 8081
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "384Mi"
+                  },
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "768Mi"
+                  }
+                },
+                "envFrom": [
+                  {
+                    "secretRef": {
+                      "name": "auth-service-env"
+                    }
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "SERVER_PORT",
+                    "value": "8081"
+                  },
+                  {
+                    "name": "AUTH_DB_URL",
+                    "value": "jdbc:postgresql://postgres:5432/auth_db"
+                  },
+                  {
+                    "name": "SPRING_PROFILES_ACTIVE",
+                    "value": "local"
+                  },
+                  {
+                    "name": "DB_HOST",
+                    "value": "postgres"
+                  },
+                  {
+                    "name": "DB_PORT",
+                    "value": "5432"
+                  },
+                  {
+                    "name": "DB_NAME",
+                    "value": "auth_db"
+                  },
+                  {
+                    "name": "JWT_PRIVATE_KEY",
+                    "value": "file:/run/keys/private.pem"
+                  },
+                  {
+                    "name": "JWT_PUBLIC_KEY",
+                    "value": "file:/run/keys/public.pem"
+                  },
+                  {
+                    "name": "DB_USERNAME",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "auth-service-env",
+                        "key": "POSTGRES_USER"
+                      }
+                    }
+                  },
+                  {
+                    "name": "DB_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "auth-service-env",
+                        "key": "POSTGRES_PASSWORD"
+                      }
+                    }
+                  },
+                  {
+                    "name": "JAVA_TOOL_OPTIONS",
+                    "value": "-XX:MaxRAMPercentage=65.0 -XX:+UseContainerSupport -Djava.io.tmpdir=/tmp"
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "tmp",
+                    "mountPath": "/tmp"
+                  },
+                  {
+                    "name": "jwt",
+                    "mountPath": "/run/keys",
+                    "readOnly": true
+                  }
+                ],
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "readinessProbe": {
+                  "httpGet": {
+                    "port": 8081,
+                    "path": "/actuator/health/readiness"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3
+                },
+                "livenessProbe": {
+                  "httpGet": {
+                    "port": 8081,
+                    "path": "/actuator/health/liveness"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3
+                },
+                "startupProbe": {
+                  "httpGet": {
+                    "port": 8081,
+                    "path": "/actuator/health/readiness"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3,
+                  "failureThreshold": 60
+                }
+              }
+            ],
+            "terminationGracePeriodSeconds": 40,
+            "volumes": [
+              {
+                "name": "tmp",
+                "emptyDir": {}
+              },
+              {
+                "name": "jwt",
+                "secret": {
+                  "secretName": "jwt-auth"
+                }
+              }
+            ]
+          }
+        },
+        "strategy": {
+          "type": "RollingUpdate",
+          "rollingUpdate": {
+            "maxSurge": 1,
+            "maxUnavailable": 0
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "user-service",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "selector": {
+          "app": "user-service"
+        },
+        "ports": [
+          {
+            "name": "p8082",
+            "port": 8082,
+            "targetPort": 8082
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "user-service",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "user-service"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "user-service"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "name": "user-service",
+                "image": "vmduong2005/user-service:latest",
+                "imagePullPolicy": "Always",
+                "ports": [
+                  {
+                    "containerPort": 8082
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "384Mi"
+                  },
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "768Mi"
+                  }
+                },
+                "envFrom": [
+                  {
+                    "secretRef": {
+                      "name": "user-service-env"
+                    }
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "SERVER_PORT",
+                    "value": "8082"
+                  },
+                  {
+                    "name": "USER_DB_URL",
+                    "value": "jdbc:postgresql://postgres:5432/user_db"
+                  },
+                  {
+                    "name": "MINIO_ENDPOINT",
+                    "value": "http://minio:9000"
+                  },
+                  {
+                    "name": "JAVA_TOOL_OPTIONS",
+                    "value": "-XX:MaxRAMPercentage=65.0 -XX:+UseContainerSupport -Djava.io.tmpdir=/tmp"
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "tmp",
+                    "mountPath": "/tmp"
+                  }
+                ],
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "readinessProbe": {
+                  "httpGet": {
+                    "port": 8082,
+                    "path": "/actuator/health/readiness"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3
+                },
+                "livenessProbe": {
+                  "httpGet": {
+                    "port": 8082,
+                    "path": "/actuator/health/liveness"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3
+                },
+                "startupProbe": {
+                  "httpGet": {
+                    "port": 8082,
+                    "path": "/actuator/health/readiness"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3,
+                  "failureThreshold": 60
+                }
+              }
+            ],
+            "terminationGracePeriodSeconds": 40,
+            "volumes": [
+              {
+                "name": "tmp",
+                "emptyDir": {}
+              }
+            ]
+          }
+        },
+        "strategy": {
+          "type": "RollingUpdate",
+          "rollingUpdate": {
+            "maxSurge": 1,
+            "maxUnavailable": 0
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "job-service",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "selector": {
+          "app": "job-service"
+        },
+        "ports": [
+          {
+            "name": "p8083",
+            "port": 8083,
+            "targetPort": 8083
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "job-service",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "job-service"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "job-service"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "name": "job-service",
+                "image": "vmduong2005/job-service:latest",
+                "imagePullPolicy": "Always",
+                "ports": [
+                  {
+                    "containerPort": 8083
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "384Mi"
+                  },
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "768Mi"
+                  }
+                },
+                "envFrom": [
+                  {
+                    "secretRef": {
+                      "name": "job-service-env"
+                    }
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "SERVER_PORT",
+                    "value": "8083"
+                  },
+                  {
+                    "name": "JOB_DB_URL",
+                    "value": "jdbc:postgresql://postgres:5432/job_db"
+                  },
+                  {
+                    "name": "USER_SERVICE_URI",
+                    "value": "http://user-service:8082"
+                  },
+                  {
+                    "name": "JAVA_TOOL_OPTIONS",
+                    "value": "-XX:MaxRAMPercentage=65.0 -XX:+UseContainerSupport -Djava.io.tmpdir=/tmp"
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "tmp",
+                    "mountPath": "/tmp"
+                  }
+                ],
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "readinessProbe": {
+                  "httpGet": {
+                    "port": 8083,
+                    "path": "/actuator/health/readiness"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3
+                },
+                "livenessProbe": {
+                  "httpGet": {
+                    "port": 8083,
+                    "path": "/actuator/health/liveness"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3
+                },
+                "startupProbe": {
+                  "httpGet": {
+                    "port": 8083,
+                    "path": "/actuator/health/readiness"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3,
+                  "failureThreshold": 60
+                }
+              }
+            ],
+            "terminationGracePeriodSeconds": 40,
+            "volumes": [
+              {
+                "name": "tmp",
+                "emptyDir": {}
+              }
+            ]
+          }
+        },
+        "strategy": {
+          "type": "RollingUpdate",
+          "rollingUpdate": {
+            "maxSurge": 1,
+            "maxUnavailable": 0
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "application-service",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "selector": {
+          "app": "application-service"
+        },
+        "ports": [
+          {
+            "name": "p8084",
+            "port": 8084,
+            "targetPort": 8084
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "application-service",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "application-service"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "application-service"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "name": "application-service",
+                "image": "vmduong2005/application-service:latest",
+                "imagePullPolicy": "Always",
+                "ports": [
+                  {
+                    "containerPort": 8084
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "384Mi"
+                  },
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "768Mi"
+                  }
+                },
+                "envFrom": [
+                  {
+                    "secretRef": {
+                      "name": "application-service-env"
+                    }
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "SERVER_PORT",
+                    "value": "8084"
+                  },
+                  {
+                    "name": "APPLICATION_DB_URL",
+                    "value": "jdbc:postgresql://postgres:5432/application_db"
+                  },
+                  {
+                    "name": "USER_SERVICE_URI",
+                    "value": "http://user-service:8082"
+                  },
+                  {
+                    "name": "JOB_SERVICE_URI",
+                    "value": "http://job-service:8083"
+                  },
+                  {
+                    "name": "RABBITMQ_HOST",
+                    "value": "rabbitmq"
+                  },
+                  {
+                    "name": "RABBITMQ_PORT",
+                    "value": "5672"
+                  },
+                  {
+                    "name": "JAVA_TOOL_OPTIONS",
+                    "value": "-XX:MaxRAMPercentage=65.0 -XX:+UseContainerSupport -Djava.io.tmpdir=/tmp"
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "tmp",
+                    "mountPath": "/tmp"
+                  }
+                ],
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "readinessProbe": {
+                  "httpGet": {
+                    "port": 8084,
+                    "path": "/actuator/health/readiness"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3
+                },
+                "livenessProbe": {
+                  "httpGet": {
+                    "port": 8084,
+                    "path": "/actuator/health/liveness"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3
+                },
+                "startupProbe": {
+                  "httpGet": {
+                    "port": 8084,
+                    "path": "/actuator/health/readiness"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3,
+                  "failureThreshold": 60
+                }
+              }
+            ],
+            "terminationGracePeriodSeconds": 40,
+            "volumes": [
+              {
+                "name": "tmp",
+                "emptyDir": {}
+              }
+            ]
+          }
+        },
+        "strategy": {
+          "type": "RollingUpdate",
+          "rollingUpdate": {
+            "maxSurge": 1,
+            "maxUnavailable": 0
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "notification-service",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "selector": {
+          "app": "notification-service"
+        },
+        "ports": [
+          {
+            "name": "p8085",
+            "port": 8085,
+            "targetPort": 8085
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "notification-service",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "notification-service"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "notification-service"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "name": "notification-service",
+                "image": "vmduong2005/notification-service:latest",
+                "imagePullPolicy": "Always",
+                "ports": [
+                  {
+                    "containerPort": 8085
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "384Mi"
+                  },
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "768Mi"
+                  }
+                },
+                "envFrom": [
+                  {
+                    "secretRef": {
+                      "name": "notification-service-env"
+                    }
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "SERVER_PORT",
+                    "value": "8085"
+                  },
+                  {
+                    "name": "NOTIFICATION_DB_URL",
+                    "value": "jdbc:postgresql://postgres:5432/notification_db"
+                  },
+                  {
+                    "name": "USER_SERVICE_URI",
+                    "value": "http://user-service:8082"
+                  },
+                  {
+                    "name": "RABBITMQ_HOST",
+                    "value": "rabbitmq"
+                  },
+                  {
+                    "name": "RABBITMQ_PORT",
+                    "value": "5672"
+                  },
+                  {
+                    "name": "MAIL_HOST",
+                    "value": "mailpit"
+                  },
+                  {
+                    "name": "MAIL_PORT",
+                    "value": "1025"
+                  },
+                  {
+                    "name": "JAVA_TOOL_OPTIONS",
+                    "value": "-XX:MaxRAMPercentage=65.0 -XX:+UseContainerSupport -Djava.io.tmpdir=/tmp"
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "tmp",
+                    "mountPath": "/tmp"
+                  }
+                ],
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "readinessProbe": {
+                  "httpGet": {
+                    "port": 8085,
+                    "path": "/actuator/health/readiness"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3
+                },
+                "livenessProbe": {
+                  "httpGet": {
+                    "port": 8085,
+                    "path": "/actuator/health/liveness"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3
+                },
+                "startupProbe": {
+                  "httpGet": {
+                    "port": 8085,
+                    "path": "/actuator/health/readiness"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3,
+                  "failureThreshold": 60
+                }
+              }
+            ],
+            "terminationGracePeriodSeconds": 40,
+            "volumes": [
+              {
+                "name": "tmp",
+                "emptyDir": {}
+              }
+            ]
+          }
+        },
+        "strategy": {
+          "type": "RollingUpdate",
+          "rollingUpdate": {
+            "maxSurge": 1,
+            "maxUnavailable": 0
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "api-gateway",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "selector": {
+          "app": "api-gateway"
+        },
+        "ports": [
+          {
+            "name": "p8080",
+            "port": 8080,
+            "targetPort": 8080
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "api-gateway",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "api-gateway"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "api-gateway"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "name": "api-gateway",
+                "image": "vmduong2005/api-gateway:latest",
+                "imagePullPolicy": "Always",
+                "ports": [
+                  {
+                    "containerPort": 8080
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "384Mi"
+                  },
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "768Mi"
+                  }
+                },
+                "envFrom": [
+                  {
+                    "secretRef": {
+                      "name": "api-gateway-env"
+                    }
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "SERVER_PORT",
+                    "value": "8080"
+                  },
+                  {
+                    "name": "USER_SERVICE_URI",
+                    "value": "http://user-service:8082"
+                  },
+                  {
+                    "name": "JOB_SERVICE_URI",
+                    "value": "http://job-service:8083"
+                  },
+                  {
+                    "name": "AUTH_SERVICE_URI",
+                    "value": "http://auth-service:8081"
+                  },
+                  {
+                    "name": "APPLICATION_SERVICE_URI",
+                    "value": "http://application-service:8084"
+                  },
+                  {
+                    "name": "JWT_PUBLIC_KEY",
+                    "value": "file:/run/keys/public.pem"
+                  },
+                  {
+                    "name": "JAVA_TOOL_OPTIONS",
+                    "value": "-XX:MaxRAMPercentage=65.0 -XX:+UseContainerSupport -Djava.io.tmpdir=/tmp"
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "tmp",
+                    "mountPath": "/tmp"
+                  },
+                  {
+                    "name": "jwt",
+                    "mountPath": "/run/keys",
+                    "readOnly": true
+                  }
+                ],
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "readinessProbe": {
+                  "httpGet": {
+                    "port": 8080,
+                    "path": "/actuator/health/readiness"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3
+                },
+                "livenessProbe": {
+                  "httpGet": {
+                    "port": 8080,
+                    "path": "/actuator/health/liveness"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3
+                },
+                "startupProbe": {
+                  "httpGet": {
+                    "port": 8080,
+                    "path": "/actuator/health/readiness"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3,
+                  "failureThreshold": 60
+                }
+              }
+            ],
+            "terminationGracePeriodSeconds": 40,
+            "volumes": [
+              {
+                "name": "tmp",
+                "emptyDir": {}
+              },
+              {
+                "name": "jwt",
+                "secret": {
+                  "secretName": "jwt-public"
+                }
+              }
+            ]
+          }
+        },
+        "strategy": {
+          "type": "RollingUpdate",
+          "rollingUpdate": {
+            "maxSurge": 1,
+            "maxUnavailable": 0
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "frontend",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "selector": {
+          "app": "frontend"
+        },
+        "ports": [
+          {
+            "name": "p8080",
+            "port": 8080,
+            "targetPort": 8080,
+            "nodePort": 30000
+          }
+        ],
+        "type": "NodePort"
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "frontend",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "frontend"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "frontend"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "name": "frontend",
+                "image": "vmduong2005/frontend:latest",
+                "imagePullPolicy": "Always",
+                "ports": [
+                  {
+                    "containerPort": 8080
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "128Mi"
+                  },
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "512Mi"
+                  }
+                },
+                "env": [
+                  {
+                    "name": "SERVER_PORT",
+                    "value": "8080"
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "tmp",
+                    "mountPath": "/tmp"
+                  },
+                  {
+                    "name": "nginx",
+                    "mountPath": "/etc/nginx/conf.d/default.conf",
+                    "subPath": "default.conf",
+                    "readOnly": true
+                  }
+                ],
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "readinessProbe": {
+                  "httpGet": {
+                    "port": 8080,
+                    "path": "/healthz"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3
+                },
+                "livenessProbe": {
+                  "httpGet": {
+                    "port": 8080,
+                    "path": "/healthz"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3
+                },
+                "startupProbe": {
+                  "httpGet": {
+                    "port": 8080,
+                    "path": "/healthz"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3,
+                  "failureThreshold": 60
+                }
+              }
+            ],
+            "terminationGracePeriodSeconds": 40,
+            "volumes": [
+              {
+                "name": "tmp",
+                "emptyDir": {}
+              },
+              {
+                "name": "nginx",
+                "configMap": {
+                  "name": "frontend-nginx"
+                }
+              }
+            ]
+          }
+        },
+        "strategy": {
+          "type": "RollingUpdate",
+          "rollingUpdate": {
+            "maxSurge": 1,
+            "maxUnavailable": 0
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "frontend",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "podSelector": {
+          "matchLabels": {
+            "app": "frontend"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ],
+        "ingress": [
+          {}
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "api-gateway",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "podSelector": {
+          "matchLabels": {
+            "app": "api-gateway"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ],
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "frontend"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "auth-service",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "podSelector": {
+          "matchLabels": {
+            "app": "auth-service"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ],
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "api-gateway"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "user-service",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "podSelector": {
+          "matchLabels": {
+            "app": "user-service"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ],
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "api-gateway"
+                  }
+                }
+              },
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "job-service"
+                  }
+                }
+              },
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "application-service"
+                  }
+                }
+              },
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "notification-service"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "job-service",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "podSelector": {
+          "matchLabels": {
+            "app": "job-service"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ],
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "api-gateway"
+                  }
+                }
+              },
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "application-service"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "application-service",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "podSelector": {
+          "matchLabels": {
+            "app": "application-service"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ],
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "api-gateway"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "notification-service",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "podSelector": {
+          "matchLabels": {
+            "app": "notification-service"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ],
+        "ingress": []
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "postgres",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "podSelector": {
+          "matchLabels": {
+            "app": "postgres"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ],
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "auth-service"
+                  }
+                }
+              },
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "user-service"
+                  }
+                }
+              },
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "job-service"
+                  }
+                }
+              },
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "application-service"
+                  }
+                }
+              },
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "notification-service"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "rabbitmq",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "podSelector": {
+          "matchLabels": {
+            "app": "rabbitmq"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ],
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "application-service"
+                  }
+                }
+              },
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "notification-service"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "minio",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "podSelector": {
+          "matchLabels": {
+            "app": "minio"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ],
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "user-service"
+                  }
+                }
+              },
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "minio-init"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "mailpit",
+        "namespace": "recruitment"
+      },
+      "spec": {
+        "podSelector": {
+          "matchLabels": {
+            "app": "mailpit"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ],
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "notification-service"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

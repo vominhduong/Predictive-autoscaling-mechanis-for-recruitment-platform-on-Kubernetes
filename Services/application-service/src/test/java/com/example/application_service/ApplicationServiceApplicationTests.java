@@ -37,6 +37,7 @@ class ApplicationServiceApplicationTests {
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:17-alpine");
     static final UUID JOB = UUID.randomUUID(), CLOSED_JOB = UUID.randomUUID(), SLOW_JOB = UUID.randomUUID(), COMPANY = UUID.randomUUID(), CREATOR = UUID.randomUUID(), CANDIDATE = UUID.randomUUID(), CV = UUID.randomUUID(), EMPLOYER = UUID.randomUUID(), OUTSIDER = UUID.randomUUID();
     static final AtomicReference<String> JOB_TITLE = new AtomicReference<>("Platform Engineer");
+    static final AtomicReference<String> PROFILE_CV_KEY = new AtomicReference<>("private/cv.pdf");
     static final HttpServer STUB = stub();
     @Autowired
     MockMvc mvc;
@@ -50,6 +51,8 @@ class ApplicationServiceApplicationTests {
     OutboxEventRepository outbox;
     @Autowired
     JdbcTemplate jdbc;
+    @Autowired
+    org.springframework.transaction.PlatformTransactionManager applicationTransactionManager;
 
     @DynamicPropertySource
     static void props(DynamicPropertyRegistry r) {
@@ -74,6 +77,7 @@ class ApplicationServiceApplicationTests {
         histories.deleteAll();
         applications.deleteAll();
         JOB_TITLE.set("Platform Engineer");
+        PROFILE_CV_KEY.set("private/cv.pdf");
     }
 
     @Test
@@ -161,14 +165,75 @@ class ApplicationServiceApplicationTests {
     void businessWritesAndOutboxAreAtomic() throws Exception {
         String id = apply(CANDIDATE, CV);
         assertThat(outbox.countByStatus(OutboxStatus.PENDING)).isEqualTo(1);
+        var eventTime = java.time.Instant.parse(jdbc.queryForObject(
+                "select payload::jsonb ->> 'occurredAt' from outbox_events where aggregate_id=? and event_type='APPLICATION_SUBMITTED'",
+                String.class, UUID.fromString(id)));
+        var savedTime = jdbc.queryForObject("select created_at from applications where id=?",
+                java.time.OffsetDateTime.class, UUID.fromString(id)).toInstant();
+        assertThat(eventTime.truncatedTo(java.time.temporal.ChronoUnit.MICROS)).isEqualTo(savedTime);
         mvc.perform(patch("/api/v1/applications/{id}/status", id).headers(identity(EMPLOYER, "EMPLOYER")).contentType(MediaType.APPLICATION_JSON).content("{\"newStatus\":\"SCREENING\",\"version\":0}")).andExpect(status().isOk());
         assertThat(outbox.countByStatus(OutboxStatus.PENDING)).isEqualTo(2);
         mvc.perform(patch("/api/v1/applications/{id}/status", id).headers(identity(EMPLOYER, "EMPLOYER")).contentType(MediaType.APPLICATION_JSON).content("{\"newStatus\":\"HIRED\",\"version\":1}")).andExpect(status().isConflict());
         assertThat(outbox.countByStatus(OutboxStatus.PENDING)).isEqualTo(2);
     }
 
+    @Test
+    @Order(10)
+    void rollbackAndDuplicateDoNotPublishSubmissionEvents() throws Exception {
+        var template = new org.springframework.transaction.support.TransactionTemplate(
+                applicationTransactionManager);
+        template.execute(status -> {
+            service.apply(new ApplicationDtos.Apply(JOB, CV, "Interested"), CANDIDATE,
+                    "candidate@example.com", "rollback-test");
+            status.setRollbackOnly();
+            return null;
+        });
+        assertThat(applications.count()).isZero();
+        assertThat(outbox.count()).isZero();
+
+        apply(CANDIDATE, CV);
+        assertThat(outbox.count()).isEqualTo(1);
+        mvc.perform(post("/api/v1/applications").headers(identity(CANDIDATE, "CANDIDATE"))
+                .contentType(MediaType.APPLICATION_JSON).content(applyJson(JOB, CV)))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("APPLICATION_ALREADY_EXISTS"));
+        assertThat(outbox.count()).isEqualTo(1);
+    }
+
     private String apply(UUID candidate, UUID cv) throws Exception {
         return tools.jackson.databind.json.JsonMapper.builder().build().readTree(mvc.perform(post("/api/v1/applications").headers(identity(candidate, "CANDIDATE")).contentType(MediaType.APPLICATION_JSON).content(applyJson(JOB, cv))).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString()).get("data").get("id").asText();
+    }
+
+    @Test
+    @Order(11)
+    void cvBytesRequireEmployerOwnershipAndUseApplicationSnapshot() throws Exception {
+        String id = apply(CANDIDATE, CV);
+        PROFILE_CV_KEY.set("private/replacement.pdf");
+        for (boolean download : List.of(false, true)) {
+            mvc.perform(get("/api/v1/applications/{id}/cv", id).param("download", String.valueOf(download))
+                            .headers(identity(EMPLOYER, "EMPLOYER")))
+                    .andExpect(status().isOk()).andExpect(content().contentType("application/pdf"))
+                    .andExpect(content().bytes(pdf()))
+                    .andExpect(header().string("Cache-Control", "no-store"))
+                    .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.startsWith(download ? "attachment;" : "inline;")));
+        }
+        mvc.perform(get("/api/v1/applications/{id}/cv", id).headers(identity(OUTSIDER, "EMPLOYER")))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/applications/{id}/cv", id).headers(identity(CANDIDATE, "CANDIDATE")))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/applications/{id}/cv", id)).andExpect(status().isUnauthorized());
+        // An unrelated current profile CV cannot override the key on this application.
+        mvc.perform(get("/api/v1/applications/{id}/cv", id).param("objectKey", "other/cv.pdf")
+                        .headers(identity(EMPLOYER, "EMPLOYER")))
+                .andExpect(status().isOk()).andExpect(content().bytes(pdf()));
+        jdbc.update("update applications set cv_object_key_snapshot='missing.pdf' where id=?", UUID.fromString(id));
+        mvc.perform(get("/api/v1/applications/{id}/cv", id).headers(identity(EMPLOYER, "EMPLOYER")))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("CV_FILE_NOT_FOUND"));
+    }
+
+    private static byte[] pdf() throws IOException {
+        try (var in = ApplicationServiceApplicationTests.class.getResourceAsStream("/cv-preview.pdf")) {
+            return Objects.requireNonNull(in).readAllBytes();
+        }
     }
 
     private String concurrentApply(CountDownLatch go) {
@@ -220,11 +285,24 @@ class ApplicationServiceApplicationTests {
                     respond(e, 404, "{}");
                     return;
                 }
-                respond(e, 200, "{\"success\":true,\"data\":{\"cvId\":\"" + CV + "\",\"candidateId\":\"" + CANDIDATE + "\",\"fileName\":\"cv.pdf\",\"objectKey\":\"private/cv.pdf\",\"contentType\":\"application/pdf\",\"sizeBytes\":123,\"valid\":true}}");
+                respond(e, 200, "{\"success\":true,\"data\":{\"cvId\":\"" + CV + "\",\"candidateId\":\"" + CANDIDATE + "\",\"fileName\":\"cv.pdf\",\"objectKey\":\"" + PROFILE_CV_KEY.get() + "\",\"contentType\":\"application/pdf\",\"sizeBytes\":123,\"valid\":true}}");
             });
             s.createContext("/internal/companies/", e -> {
                 boolean ok = String.valueOf(e.getRequestURI().getQuery()).contains(EMPLOYER.toString());
                 respond(e, 200, "{\"success\":true,\"data\":{\"canManage\":" + ok + ",\"memberRole\":" + (ok ? "\"RECRUITER\"" : "null") + "}}");
+            });
+            s.createContext("/internal/cv-file", e -> {
+                if (!"test-internal-secret".equals(e.getRequestHeaders().getFirst("X-Internal-Token"))) {
+                    respond(e, 401, "{}");
+                } else if (!"objectKey=private/cv.pdf".equals(e.getRequestURI().getQuery())) {
+                    respond(e, 404, "{}");
+                } else {
+                    byte[] bytes = pdf();
+                    e.getResponseHeaders().set("Content-Type", "application/pdf");
+                    e.sendResponseHeaders(200, bytes.length);
+                    e.getResponseBody().write(bytes);
+                    e.close();
+                }
             });
             s.start();
             return s;

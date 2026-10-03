@@ -60,6 +60,27 @@ class UserServiceApplicationTests {
     }
 
     @Test
+    void internalCvFileRequiresSecretAndReportsMissingObjects() throws Exception {
+        byte[] bytes;
+        try (var in = getClass().getResourceAsStream("/cv-preview.pdf")) {
+            bytes = Objects.requireNonNull(in).readAllBytes();
+        }
+        storage.objects.put("cvs/snapshot.pdf", bytes);
+        mvc.perform(get("/internal/cv-file").param("objectKey", "cvs/snapshot.pdf"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/internal/cv-file").param("objectKey", "cvs/snapshot.pdf")
+                        .header("X-Internal-Token", "wrong"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/internal/cv-file").param("objectKey", "cvs/snapshot.pdf")
+                        .header("X-Internal-Token", "test-internal-secret"))
+                .andExpect(status().isOk()).andExpect(content().contentType("application/pdf"))
+                .andExpect(content().bytes(bytes));
+        mvc.perform(get("/internal/cv-file").param("objectKey", "missing.pdf")
+                        .header("X-Internal-Token", "test-internal-secret"))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("CV_FILE_NOT_FOUND"));
+    }
+
+    @Test
     void openApiContractIsGenerated() throws Exception {
         mvc.perform(get("/v3/api-docs")).andExpect(status().isOk()).andExpect(jsonPath("$.openapi").isNotEmpty()).andExpect(jsonPath("$.paths['/api/v1/candidates/me']").exists());
     }
@@ -69,6 +90,23 @@ class UserServiceApplicationTests {
         UUID u = UUID.randomUUID();
         mvc.perform(put("/api/v1/candidates/me").headers(identity(u, "CANDIDATE")).contentType(MediaType.APPLICATION_JSON).content("{\"fullName\":\"Ada\",\"headline\":\"Java\"}")).andExpect(status().isOk()).andExpect(jsonPath("$.data.userId").value(u.toString())).andExpect(jsonPath("$.data.fullName").value("Ada"));
         mvc.perform(get("/api/v1/candidates/me").headers(identity(u, "CANDIDATE"))).andExpect(status().isOk()).andExpect(jsonPath("$.data.headline").value("Java"));
+    }
+
+    @Test
+    void notificationContextRequiresInternalTokenAndReturnsTrustedNames() throws Exception {
+        UUID candidate = UUID.randomUUID();
+        String company = createCompany(UUID.randomUUID());
+        mvc.perform(put("/api/v1/candidates/me").headers(identity(candidate, "CANDIDATE"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"fullName\":\"Nguyễn An\"}"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/internal/notification-context")
+                        .param("candidateId", candidate.toString()).param("companyId", company))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/internal/notification-context").header("X-Internal-Token", "test-internal-secret")
+                        .param("candidateId", candidate.toString()).param("companyId", company))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.candidateName").value("Nguyễn An"))
+                .andExpect(jsonPath("$.data.companyName").isNotEmpty())
+                .andExpect(jsonPath("$.data.candidateEmail").doesNotExist());
     }
 
     @Test
@@ -198,6 +236,13 @@ class UserServiceApplicationTests {
 
     static class MemoryStorage implements ObjectStorage {
         final Map<String, byte[]> objects = new ConcurrentHashMap<>();
+
+        public StoredFile get(String k) {
+            byte[] bytes = objects.get(k);
+            if (bytes == null) throw new com.example.user_service.exception.ApiException(
+                    org.springframework.http.HttpStatus.NOT_FOUND, "CV_FILE_NOT_FOUND", "The CV file no longer exists");
+            return new StoredFile(bytes, "application/pdf");
+        }
 
         public void put(String k, InputStream d, long s, String t) {
             try {

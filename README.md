@@ -32,6 +32,8 @@ The local development RSA key under `Services/auth-service/src/main/resources/ke
 
 RabbitMQ, MinIO and Grafana use the credentials from `.env`. Domain services are reachable only inside `recruitment-network`. PostgreSQL, Redis, RabbitMQ AMQP and MinIO API remain exposed for local diagnostics; change or remove those port mappings outside local development. Redis is reserved for future rate limiting/cache work and is not a runtime dependency of the services.
 
+For Vietnamese application receipt emails, set `BREVO_API_KEY`, `BREVO_SENDER_EMAIL` (a verified Brevo sender), and `BREVO_SENDER_NAME` in the ignored local `.env` file before starting `notification-service`. Application submission writes an outbox event in the same transaction; only committed events reach Notification Service, which calls Brevo's transactional email HTTP API. A Brevo failure is recorded as a failed notification and does not change the successful application response. Failed/uncertain Brevo calls are not automatically retried, to avoid duplicate receipts. Status-change emails continue to use the existing Mailpit/SMTP configuration. Tests use a local HTTP stub or mocks and do not contact Brevo.
+
 The frontend serves static assets through unprivileged Nginx. Browser API calls use same-origin `/api/**`, which Nginx proxies to `api-gateway:8080`; Docker-only hostnames never reach the browser.
 
 ## Operations

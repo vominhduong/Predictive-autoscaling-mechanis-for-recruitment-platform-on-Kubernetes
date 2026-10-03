@@ -1,4 +1,5 @@
 import {CompanySummary} from '../company/CompanySummary';
+import {ApplicationCv} from '../employer/ApplicationCv';
 
 export {CvsPage} from './CvManager';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
@@ -133,7 +134,9 @@ export function ApplicationDetailPage() {
             to="/candidate/applications">Xem việc đã ứng tuyển</Link></div>}
         <div className="detail-grid">
             <article className="panel prose"><h2>Thông tin hồ sơ</h2><p><CompanySummary id={a.companyId}/></p><p>
-                <strong>CV:</strong> {a.cvFileName}</p><p><strong>Ngày ứng
+                <strong>CV:</strong> {a.cvFileName}</p>
+                {location.pathname.startsWith('/employer/') && <ApplicationCv key={a.id} id={a.id} fileName={a.cvFileName}/>}
+                <p><strong>Ngày ứng
                 tuyển:</strong> {new Date(a.createdAt).toLocaleString('vi-VN')}</p><h3>Thư giới thiệu</h3>
                 <p>{a.coverLetter || 'Không có thư giới thiệu.'}</p></article>
             <aside className="panel timeline"><h2>Tiến trình</h2>{history.map(h => <div className="timeline-item"

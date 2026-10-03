@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: recruitment-config
+  namespace: recruitment
+data:
+  SPRING_PROFILES_ACTIVE: local
+  DB_HOST: postgres
+  DB_PORT: '5432'
+  DB_NAME: auth_db
+  AUTH_DB_URL: jdbc:postgresql://postgres:5432/auth_db
+  USER_DB_URL: jdbc:postgresql://postgres:5432/user_db
+  JOB_DB_URL: jdbc:postgresql://postgres:5432/job_db
+  APPLICATION_DB_URL: jdbc:postgresql://postgres:5432/application_db
+  NOTIFICATION_DB_URL: jdbc:postgresql://postgres:5432/notification_db
+  AUTH_SERVICE_URI: http://auth-service:8081
+  USER_SERVICE_URI: http://user-service:8082
+  JOB_SERVICE_URI: http://job-service:8083
+  APPLICATION_SERVICE_URI: http://application-service:8084
+  NOTIFICATION_SERVICE_URI: http://notification-service:8085
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_PORT: '5672'
+  REDIS_HOST: redis
+  REDIS_PORT: '6379'
+  MINIO_ENDPOINT: http://minio:9000
+  MINIO_CV_BUCKET: recruitment-cvs
+  JWT_ISSUER: recruitment-auth-service
+  JWT_ACCESS_TOKEN_EXPIRATION: 1800s
+  REFRESH_TOKEN_EXPIRATION: 604800s
+  JWT_PRIVATE_KEY: file:/run/keys/dev-private.pem
+  JWT_PUBLIC_KEY: file:/run/keys/dev-public.pem
+  CORS_ALLOWED_ORIGINS: http://localhost:3000
+  LOGGING_LEVEL_ROOT: INFO
+  MAIL_HOST: mailpit
+  MAIL_PORT: '1025'
+  NOTIFICATION_FROM: no-reply@recruitment.local
+  BREVO_SENDER_EMAIL: vominhduong2005@gmail.com
+  BREVO_SENDER_NAME: TanlentHub
+  JAVA_TOOL_OPTIONS: '-XX:MaxRAMPercentage=60.0 -XX:+UseContainerSupport -Djava.io.tmpdir=/tmp'
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+  namespace: recruitment
+data:
+  01-init-databases.sql: |
+    \set ON_ERROR_STOP on
+    CREATE DATABASE auth_db;
+    CREATE DATABASE user_db;
+    CREATE DATABASE job_db;
+    CREATE DATABASE application_db;
+    CREATE DATABASE notification_db;
