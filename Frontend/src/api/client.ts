@@ -1,4 +1,5 @@
 import axios, {type AxiosRequestConfig} from 'axios';
+import { v4 as uuidv4 } from 'uuid';
 import {clearSession, createSession, getSession, setSession} from '../features/auth/session';
 import type {ApiResponse, Tokens} from '../types/api';
 
@@ -26,7 +27,7 @@ async function refreshAccess() {
 api.interceptors.request.use(config => {
     const session = getSession();
     if (session) config.headers.Authorization = `Bearer ${session.accessToken}`;
-    config.headers['X-Correlation-ID'] = crypto.randomUUID();
+    config.headers['X-Correlation-ID'] = uuidv4();
     return config
 });
 api.interceptors.response.use(r => r, async error => {
