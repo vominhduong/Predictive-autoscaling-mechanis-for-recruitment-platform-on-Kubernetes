@@ -3,7 +3,9 @@
 
 CPU/RAM exclude istio-proxy by default. CPU/RAM are totals across replicas.
 Pod mapping assumes Deployment pods named SERVICE-REPLICASETHASH-SUFFIX.
-Missing/nonfinite values remain blank. HTTP errors cover only HTTP 5xx.
+Missing/nonfinite values remain blank. Timestamps are ISO 8601 in UTC.
+CSV columns: timestamp, service, rps, latency_p95_ms, cpu_usage_cores,
+memory_usage_bytes (working set), replicas_available.
 """
 
 import argparse
@@ -35,37 +37,21 @@ def queries(namespace, window, include_sidecar):
         f'destination_workload=~"{names}"'
     )
 
-    def request_rate(extra=""):
-        return (
-            "sum by (destination_workload) (rate(istio_requests_total"
-            f"{{{istio}{extra}}}[{window}]))"
-        )
-
     def rename(q, source):
         return f'label_replace(({q}), "service", "$1", "{source}", "(.*)")'
 
-    rps = request_rate()
-    errors = request_rate(',response_code=~"5.."')
-    error_zero = f"({errors}) or (0 * ({rps}))"
+    rps = (
+        "sum by (destination_workload) (rate(istio_requests_total"
+        f"{{{istio}}}[{window}]))"
+    )
     result = {"rps": rename(rps, "destination_workload")}
 
-    for percentile, name in [
-        (0.5, "latency_p50_ms"),
-        (0.95, "latency_p95_ms"),
-    ]:
-        q = (
-            f"histogram_quantile({percentile}, "
-            "sum by (le, destination_workload) "
-            "(rate(istio_request_duration_milliseconds_bucket"
-            f"{{{istio}}}[{window}])))"
-        )
-        result[name] = rename(q, "destination_workload")
-
-    result["http_5xx_rps"] = rename(error_zero, "destination_workload")
-    result["http_5xx_error_rate"] = rename(
-        f"({error_zero}) / ({rps})",
-        "destination_workload",
+    latency_p95 = (
+        "histogram_quantile(0.95, sum by (le, destination_workload) "
+        "(rate(istio_request_duration_milliseconds_bucket"
+        f"{{{istio}}}[{window}])))"
     )
+    result["latency_p95_ms"] = rename(latency_p95, "destination_workload")
 
     containers = (
         f'job="kubernetes-nodes-cadvisor",namespace="{namespace}",'
@@ -80,15 +66,14 @@ def queries(namespace, window, include_sidecar):
             '"pod", "(.*)-[a-z0-9]+-[a-z0-9]+"))'
         )
 
-    result["cpu_cores_total"] = resource(
+    result["cpu_usage_cores"] = resource(
         f"rate(container_cpu_usage_seconds_total{{{containers}}}[{window}])"
     )
-    result["memory_mib_total"] = (
-        resource(f"container_memory_working_set_bytes{{{containers}}}")
-        + " / 1024 / 1024"
+    result["memory_usage_bytes"] = resource(
+        f"container_memory_working_set_bytes{{{containers}}}"
     )
 
-    # Optional: needs kube-state-metrics. max deduplicates exporter copies.
+    # Requires kube-state-metrics. max deduplicates exporter copies.
     replicas = (
         "max by (deployment) (kube_deployment_status_replicas_available"
         f'{{namespace="{namespace}",deployment=~"{names}"}})'
@@ -114,7 +99,7 @@ def main():
     p.add_argument(
         "--step",
         type=int,
-        default=30,
+        default=15,
         help="Khoảng cách điểm xuất, giây",
     )
     p.add_argument("--window", default="2m", help="Cửa sổ tính rate và latency")
@@ -181,7 +166,7 @@ def main():
             "Không có metric nào; kiểm tra URL, namespace và khoảng thời gian."
         )
 
-    fields = ["timestamp_utc", "service", *qs]
+    fields = ["timestamp", "service", *qs]
     with open(a.output, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
@@ -191,7 +176,7 @@ def main():
             for service in sorted(observed):
                 writer.writerow(
                     dict(
-                        timestamp_utc=datetime.fromtimestamp(
+                        timestamp=datetime.fromtimestamp(
                             ts, timezone.utc
                         ).isoformat(),
                         service=service,
@@ -200,7 +185,7 @@ def main():
                 )
 
     print(f"Đã lưu: {a.output}; {len(observed)} service; thời gian UTC.")
-    print("CPU/RAM là tổng các replica. users phải lấy riêng từ Locust.")
+    print("CPU/RAM là tổng các replica; đơn vị CPU: cores, RAM: bytes (working set).")
 
 
 if __name__ == "__main__":
