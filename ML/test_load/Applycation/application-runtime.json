@@ -1,0 +1,37 @@
+{
+  "runId": "20261011T073310Z-b30c9a",
+  "preparedAt": "2026-10-11T07:33:15.877217+00:00",
+  "baseUrl": "http://192.168.110.156:3000",
+  "mode": "smoke",
+  "rate": 1,
+  "duration": 300,
+  "plannedSeconds": 0,
+  "requiredPairs": 1,
+  "sessions": [
+    {
+      "accessToken": "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJlYzhhNmEyYS04NmU2LTQzZjAtOTFhYi1mOGY0OWRjNWRjOTkiLCJyb2xlIjoiQ0FORElEQVRFIiwiaXNzIjoicmVjcnVpdG1lbnQtYXV0aC1zZXJ2aWNlIiwiZXhwIjoxNzkxNzA1NzkzLCJpYXQiOjE3OTE3MDM5OTMsImp0aSI6IjI0MWUyNDdlLWQ2YTUtNDIyNC05NGVhLWNmOTA2ZGY5NTVlMSIsImVtYWlsIjoiYWJjQGdtYWlsLmNvbSJ9.PZ1AGnvtL44LIiwX-xf--l3-io7gDMByGCn9DPiZDyWSSDgEPvlPsVH2-RJ-lSNirJdXeu4SDyk5Kwdqf2NeKH685GZ5C_3FrGgQ25r0uzL1iAhUXpbbhIX1rDbSBWnWZp7K5nSSCtV6PHw2nnld2c_bP3aTkus01e5fuw8497loThdo1IiuWOoGaETWrQeE3DV625MsjRt-HsZBMT9UXYzX4Mk41W0V3u9SPtPJ1PvMAN9x8hLkf0rp2nLZZpKtilLfKwOYrg7KN4KxPKPoWpIHmy5WzF4J7EfSOwTIL0r_2euJGvvEgaknRXzu3vLEb97AV5PmwbO0UwpHFOZt2w",
+      "expiresAt": 1791705793,
+      "candidateId": "ec8a6a2a-86e6-43f0-91ab-f8f49dc5dc99"
+    }
+  ],
+  "pairs": [
+    {
+      "session": 0,
+      "candidateId": "ec8a6a2a-86e6-43f0-91ab-f8f49dc5dc99",
+      "jobId": "e5a300f6-570d-4fce-9256-c50c1ae1c635",
+      "cvId": "3f3998d3-924b-4ca5-8a25-a2986831f9df"
+    },
+    {
+      "session": 0,
+      "candidateId": "ec8a6a2a-86e6-43f0-91ab-f8f49dc5dc99",
+      "jobId": "30fb71f1-6fbf-4131-a063-e76232ae6e96",
+      "cvId": "3f3998d3-924b-4ca5-8a25-a2986831f9df"
+    },
+    {
+      "session": 0,
+      "candidateId": "ec8a6a2a-86e6-43f0-91ab-f8f49dc5dc99",
+      "jobId": "87038281-7225-4e55-9b12-57a6eba9c279",
+      "cvId": "3f3998d3-924b-4ca5-8a25-a2986831f9df"
+    }
+  ]
+}

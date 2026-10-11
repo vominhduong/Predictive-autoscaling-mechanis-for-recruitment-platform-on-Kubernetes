@@ -1,0 +1,9 @@
+{
+  "baseUrl": "http://192.168.110.156:3000",
+  "accountsFile": "application-accounts.json",
+  "jobIds": [
+    "e5a300f6-570d-4fce-9256-c50c1ae1c635",
+    "30fb71f1-6fbf-4131-a063-e76232ae6e96",
+    "87038281-7225-4e55-9b12-57a6eba9c279"
+  ]
+}

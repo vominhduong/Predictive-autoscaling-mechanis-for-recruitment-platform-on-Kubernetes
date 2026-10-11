@@ -1,0 +1,13 @@
+{
+  "runId": "20261011T073310Z-b30c9a",
+  "preparedAt": "2026-10-11T07:33:15.877217+00:00",
+  "endedAt": "2026-10-11T07:35:32.045Z",
+  "mode": "smoke",
+  "rate": 1,
+  "duration": 300,
+  "plannedSeconds": 0,
+  "completed": 0,
+  "failed": 1,
+  "measuredDurationMs": 6120.096003,
+  "startedAt": "2026-10-11T07:35:25.924Z"
+}
